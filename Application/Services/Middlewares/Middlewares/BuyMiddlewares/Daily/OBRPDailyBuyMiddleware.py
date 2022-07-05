@@ -1,0 +1,101 @@
+from Application.Services.Middlewares.MiddlewareFramework.Middleware import *
+from Infrastructure.Repository.OnlineDataRepository import onlineData_repo
+from Infrastructure.Repository.OfflineDataRepository import offlineData_repo
+from Application.Services.ReadData.ReadOffline.ReadOfflineServices import read_offline_services as rfs
+from numba import jit
+from numba.types import float32, unicode_type, ListType, float64, DictType, int64
+from numba.typed import Dict, List
+from math import log10
+from datetime import datetime, timedelta
+
+S15 = [15]
+S3 = [100]
+S = S3
+
+
+class obrpDailyBuyMiddleware(middleware):
+
+    def __init__(self, dataHandler, marketWatchHandler, mainTickersList: list, kargs):
+        super(obrpDailyBuyMiddleware, self).__init__(dataHandler, marketWatchHandler, mainTickersList, kargs)
+
+
+    def get_online_data(self, tickersList: list, dataHandler: onlineDataHandler, marketWatchHandler: marketWatchDataHandler):
+        # Getting  >> List << 
+        (core_list, listInnerDict, listDataDict) = get_numba_types('List' , True)
+        core_list.clear()
+        listInnerDict.clear()
+        listDataDict.clear()
+
+        # Getting  >> Float64 <<
+        (floatInnerDict, FloatDataDict) = get_numba_types('Float', True)
+        floatInnerDict.clear()
+        FloatDataDict.clear()
+
+        row1 = dataHandler.row1(num= S[0])
+        supplyVolume1 = row1[onlineColumns.SupplyVolume1.value]
+        supplyPrice1 = row1[onlineColumns.SupplyPrice1.value]
+        supplyNumber1 = row1[onlineColumns.SupplyNumber1.value]
+        buyPerCapita = dataHandler.demandPerCapita(num= 1)
+
+
+        for Id in tickersList:
+            if Id in supplyVolume1:
+                # List
+                core_list = cast_list_to_numba(core_list, supplyPrice1[Id])
+                listInnerDict.update({onlineColumns.SupplyPrice1.value: core_list.copy()})
+
+                core_list = cast_list_to_numba(core_list, supplyVolume1[Id])
+                listInnerDict.update({onlineColumns.SupplyVolume1.value: core_list.copy()})
+
+                core_list = cast_list_to_numba(core_list, supplyNumber1[Id])
+                listInnerDict.update({onlineColumns.SupplyNumber1.value: core_list.copy()})
+
+                # Assembling
+                listDataDict.update({Id: listInnerDict.copy()})
+
+                # Float
+                floatInnerDict.update({'PerCapitaDemand': buyPerCapita[Id][0]})
+                
+                # Assembling
+                FloatDataDict.update({Id: floatInnerDict.copy()})
+
+        return (FloatDataDict, listDataDict)
+
+
+
+    @staticmethod
+    def single_ticker_calculation(tickerFloatOnlineData: dict, tickerListOnlineData:dict, tickerOfflineData: dict, tickerHistoryData:dict, tickerId:int):
+        
+        limitScore = 40
+        perCapitaDemandLimit = 20
+
+        supplyPrice1: list = tickerListOnlineData[onlineColumns.SupplyPrice1.value]
+        supplyVolume1: list = tickerListOnlineData[onlineColumns.SupplyVolume1.value]
+        supplyNumber1:list = tickerListOnlineData[onlineColumns.SupplyNumber1.value]
+        perCapitaDemand = tickerFloatOnlineData['PerCapitaDemand']
+
+        # Put this middleware where being in sell queue is assured
+        supplyPerCapita1 = [supplyVolume1[i]*supplyPrice1[i]/supplyNumber1[i]/10**7 for i in range(len(supplyNumber1))]
+        maxSupplyPerCapita = listSum(supplyPerCapita1) / len(supplyPerCapita1)
+
+        if perCapitaDemand < perCapitaDemandLimit:
+            return (True, 0)
+
+        OBRP = perCapitaDemand / maxSupplyPerCapita
+        if OBRP < 0.3:
+            return (True, 0)
+
+        score = int(max(min(80* OBRP, 100), 0))
+        
+        if score < limitScore:
+            return (True, 0)
+        else:
+            return (False, score)
+
+    
+@jit
+def listSum(numList):
+    Sum = 0
+    for num in numList:
+        Sum += num
+    return Sum

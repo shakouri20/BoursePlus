@@ -1,0 +1,71 @@
+{
+    "operation": {
+        "runType": "realTime"
+    },
+
+    "trade": {
+        "minimumBuyValue": 0.55,
+        "brokerFee": 1.25,
+        "daily": {
+            "percentOfMajor": 100,
+            "stock": {
+                "maximumBuyValue": 1,
+                "percentOfMinor": 6
+            },
+            "option": {
+                "maximumBuyValue": 1,
+                "percentOfMinor": 0
+            }
+        },
+        "shortTerm": {
+            "percentOfMajor": 0,
+            "stock": {
+                "maximumBuyValue": 1,
+                "percentOfMinor": 12
+            },
+            "option": {
+                "maximumBuyValue": 1,
+                "percentOfMinor": 0
+            }
+        },
+        "midTerm": {
+            "percentOfMajor": 0,
+            "stock": {
+                "maximumBuyValue": 1,
+                "percentOfMinor": 15
+            },
+            "option": {
+                "maximumBuyValue": 1,
+                "percentOfMinor": 0
+            }
+        },
+        "longTerm": {
+            "percentOfMajor": 0,
+            "stock": {
+                "maximumBuyValue": 1,
+                "percentOfMinor": 15
+            },
+            "option": {
+                "maximumBuyValue": 1,
+                "percentOfMinor": 0
+            }
+        }
+    },
+
+    "backTest": {
+        "initialBalance": 1000
+    },
+
+    "realTime": {
+        "monitorPortfoInterval": 5,
+        "AgahApiDefaultTimeOut": 3,
+        "monitorChromePeriod": 30,
+        "registerCancelTimeSpan": 1,
+        "portfoUpdateTimeSpan": 20,
+        "initialBalance": 10
+    },
+
+    "account": {
+        "agahCustomerId": 165255257
+    }
+}
