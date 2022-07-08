@@ -1,25 +1,18 @@
-import requests, time
-from Colors import bcolors
-import logging
-import datetime
-logging.getLogger("requests").setLevel(logging.ERROR)
-logging.getLogger("urllib3").setLevel(logging.ERROR)
+import requests
 
 # request from web and return list of lists from csvFile
 def getCsvData(url: str, splitters: list[str]= [';', ',']) -> list:
     """request from web and return list of lists from csvFile"""
-    cnt = 0
-    while True:
+
+    for _ in range(2):
         try:
-            response = requests.get(url, timeout=2, verify=False)
+            response = requests.get(url, timeout= 1, verify=False)
             break
         except:
-            time.sleep(0.5)
-            cnt += 1
-            if cnt == 1:
-                print(f'{bcolors.WARNING}Web Error{bcolors.ENDC}')
-            if cnt == 20:
-                cnt = 0
+            pass
+    else:
+        print('Web Error')
+        return
     
     text: str = response.text
     if len(splitters) == 1:

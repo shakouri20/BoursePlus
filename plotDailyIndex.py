@@ -1,11 +1,13 @@
 
 import datetime
+import time
 from Application.Utility.AdvancedPlot import advancedPlot
 from Application.Utility.DateConverter import jalali_to_gregorian
 from Application.Utility.Indicators.IndicatorService import calculateIchimoko, calculateMacd
 from Domain.Models.TickerOfflineData import tickersGroupData
+import requests
 
-date = '1401-03-21'
+date = '1401-03-17'
 ID = 12345
 
 data = tickersGroupData(ID, datetime.datetime.strptime(jalali_to_gregorian(date), "%Y-%m-%d"))
@@ -60,4 +62,3 @@ for i in range(15, len(data.index)):
 
 ap.run()
 
-x = 1

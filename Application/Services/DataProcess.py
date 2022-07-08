@@ -1,4 +1,4 @@
-from Application.Services.WriteData.WriteOnlineDataService import *
+from Application.Services.WriteData.GetOnlineDataService import *
 from Infrastructure.Repository.OnlineDataRepository import onlineData_repo
 from Application.Services.WriteData.WriteOfflineData.WriteOfflineDataStockService import write_mock_offline_data
 from Domain.ImportEnums import *
@@ -22,12 +22,9 @@ def write_data_to_sql(data):
     return
 
 def get_data_from_web():
-    # t1 = datetime.now()
+
     clientTypeData = get_last_clientType_Data()
-    # print('client:', datetime.now()-t1)
-    # t1 = datetime.now()
-    marketWatchData = get_last_marketWatch_data_1()
-    # print('marketWatch:', datetime.now()-t1)
+    marketWatchData = get_last_marketWatch_data()
 
     onlineDataList = []
     cacheDataDict = {}
@@ -85,7 +82,7 @@ def get_data_from_web():
                                     marketWatchData[ID]['DemandPrice5'],\
                                     marketWatchData[ID]['DemandVolume5'],\
                                     marketWatchData[ID]['DemandNumber5'],\
-                                    marketWatchData[ID]['LastTradeTime']))
+                                    marketWatchData[ID]['heven']))
             cacheDataDict[ID] = {
                 # 'Time': now.strftime("%Y-%m-%d %H:%M:%S"),
                 'Time': now,
@@ -136,7 +133,7 @@ def get_data_from_web():
                 'DemandPrice5': marketWatchData[ID]['DemandPrice5'],
                 'DemandVolume5': marketWatchData[ID]['DemandVolume5'],
                 'DemandNumber5': marketWatchData[ID]['DemandNumber5'],
-                'LastTradeTime': marketWatchData[ID]['LastTradeTime']
+                'heven': marketWatchData[ID]['heven']
             }                        
             
     return (onlineDataList, cacheDataDict)
@@ -192,9 +189,6 @@ def realTime_data_process(strategiesDataPipes):
             print('Exiting real data process...')
             return
     
-    print('Exiting real data process...')
-    return
-
 def backTest_data_process(date: str, strategiesDataPipes, strategiesDataChildPipes, dataUpdateQueue, numberOfStrategy, finishEvent):
     # time.sleep(15)
     os.system("color")

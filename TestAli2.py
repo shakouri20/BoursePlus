@@ -2,7 +2,7 @@
 
 import datetime
 import time
-from Application.Services.WriteData.WriteOnlineDataService import get_last_clientType_Data
+from Application.Services.WriteData.GetOnlineDataService import get_last_clientType_Data
 from Application.Utility.Web.WebRequest import getCsvData
 import DefaultParams as defParams
 

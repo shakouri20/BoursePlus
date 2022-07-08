@@ -19,9 +19,9 @@ tseClientExePath = r'C:\Program Files (x86)\TSETMC\TseClient 2.0'
 # URLs
 clientTypeAllUrl = r'http://www.tsetmc.com/tsev2/data/ClientTypeAll.aspx?h=0&r=1'
 clientTypeIUrl = r'http://www.tsetmc.com/tsev2/data/clienttype.aspx?i={}' # requires .format() for i
-marketWatchUrl = r'http://www.tsetmc.com/tsev2/data/MarketWatchInit.aspx?h=0&r=1'
-# newMarketWatchUrl = r'http://www.tsetmc.com/tsev2/data/MarketWatchPlus.aspx?h=181045&r=9278802875'
-newMarketWatchUrl = r'http://www.tsetmc.com/tsev2/data/MarketWatchPlus.aspx'
+marketWatchUrl = r'http://www.tsetmc.com/tsev2/data/MarketWatchPlus.aspx'
+marketWatchInitUrl = r'http://www.tsetmc.com/tsev2/data/MarketWatchInit.aspx?h=0&r=0'
+MarketWatchPlusUrl = r'http://www.tsetmc.com/tsev2/data/MarketWatchPlus.aspx?h={}&r={}'
 shareHolderIUrl = r'http://tsetmc.com/tsev2/data/ShareHolder.aspx?i={}%2CIRO1IKCO0008' # requires .format() for i
 pricesIUrl = r'http://members.tsetmc.com/tsev2/data/InstTradeHistory.aspx?i={}&Top={}&A=0' # requires .format() for i
 

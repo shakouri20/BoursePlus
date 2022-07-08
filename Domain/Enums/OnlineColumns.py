@@ -4,6 +4,7 @@ class onlineColumns(enum.Enum):
 
     # basic columns
     Time = 'Time'
+    FirstPrice = 'TodayPrice'
     TodayPrice = 'TodayPrice'
     LastPrice = 'LastPrice'
     Number = 'Number'
@@ -13,6 +14,7 @@ class onlineColumns(enum.Enum):
     YesterdayPrice = 'YesterdayPrice'
     MaxAllowedPrice= 'MaxAllowedPrice'
     MinAllowedPrice = 'MinAllowedPrice'
+    ShareNumber = 'ShareNumber'
     RealBuyNumber = 'RealBuyNumber'
     CorporateBuyNumber = 'CorporateBuyNumber'
     RealBuyVolume = 'RealBuyVolume'
@@ -57,7 +59,7 @@ class onlineColumns(enum.Enum):
     DemandVolume5 = 'DemandVolume5'
     DemandNumber5 = 'DemandNumber5'
 
-    LastTradeTime = 'LastTradeTime'
+    Heven = 'Heven'
 
     # added columns
     TodayPricePRC = 'TodayPricePRC'

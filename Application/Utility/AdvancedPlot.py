@@ -9,7 +9,7 @@ class advancedPlot:
         self.sharex = sharex
         self.fig, self.ax = plt.subplots(rowNum, colNum, sharex= sharex, figsize=(15,15), num= name)
 
-    def run(self):
+    def run(self, saveFig= False):
         self.fig.tight_layout()
         mng = plt.get_current_fig_manager()
         mng.window.state('zoomed')
@@ -30,7 +30,18 @@ class advancedPlot:
         self.fig.canvas.mpl_connect('button_press_event', self.on_click)
         rc = {'axes.edgecolor': 'red', 'axes.linewidth': 1.5, 'axes.labelsize': 'large', 'axes.labelweight': 'semibold', 'axes.grid': False, 'axes.grid.axis': 'y', 'grid.linewidth': 0.4, 'lines.linewidth': 2.0, 'font.weight': 'medium', 'font.size': 3, 'figure.titlesize': 'x-large', 'figure.titleweight': 'normal'}
         plt.rcParams.update({'font.size': 3})
-        plt.show()
+        if saveFig:
+            plt.show(block=False)
+            plt.pause(0.1)
+            plt.close()
+            self.fig.savefig('foo.png')
+        else:
+            plt.show()
+
+
+    def save_fig(self, name):
+        self.fig.savefig(name)
+
 
     def on_click(self, event):
         if event.inaxes:

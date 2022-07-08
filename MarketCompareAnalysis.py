@@ -1,7 +1,7 @@
 import datetime
 from math import log10, nan
 import pandas as pd
-from Application.Services.WriteData.WriteOnlineDataService import get_last_clientType_Data, get_last_marketWatch_data_1
+from Application.Services.WriteData.GetOnlineDataService import get_last_clientType_Data, get_last_marketWatch_data
 from Application.Utility.DateConverter import *
 from Application.Utility.Indicators.IndicatorService import calculateIchimoko, calculateMacd, calculateRsi, calculateSma
 from Domain.Enums.TableType import tableType
@@ -16,7 +16,7 @@ import copy
 fromDate = '1400-10-01'
 toDate = '1402-07-01'
 
-ichimokoAnalysis = 0
+ichimokoAnalysis = 1
 
 hIndexData = offlineData_repo().read_by_ID_and_time('Time', 'ClosePrice', 'OpenPrice', 'HighPrice', 'LowPrice', ID= 67130298613737946, fromDate= fromDate, toDate= toDate, outputDateType= dateType.gregorian)
 hDatesG = hIndexData['Time']
@@ -209,7 +209,7 @@ if datetime.datetime.strptime(datesG[-1], "%Y-%m-%d").date() != datetime.datetim
             22811176775480091, 68635710163497089, 44891482026867833]
     datesG.append(datetime.datetime.strftime(datetime.datetime.now(), "%Y-%m-%d"))
 
-    mwData = get_last_marketWatch_data_1()
+    mwData = get_last_marketWatch_data()
     ctData = get_last_clientType_Data()
 
     number = 0
@@ -680,24 +680,24 @@ ap.ax[9][0].bar(datesJ, hIndexPowerDif, color=clrs)
 
 if ichimokoAnalysis:
 
-    ap.ax[7][0].plot(datesJ, hTotalTenkansen, color= 'blue')
-    ap.ax[7][0].plot(datesJ, hTotalTenkansenMa, color= 'green', linewidth= 0.5)
-    ap.ax[7][0].plot(datesJ, [0 for _ in range(len(datesJ))], color= 'red')
-    ap.ax[7][0].set_ylabel('Tenkansen')
+    ap.ax[10][0].plot(datesJ, hTotalTenkansen, color= 'blue')
+    ap.ax[10][0].plot(datesJ, hTotalTenkansenMa, color= 'green', linewidth= 0.5)
+    ap.ax[10][0].plot(datesJ, [0 for _ in range(len(datesJ))], color= 'red')
+    ap.ax[10][0].set_ylabel('Tenkansen')
 
-    ap.ax[8][0].plot(datesJ, hTotalKijunsen, color= 'brown')
-    ap.ax[8][0].plot(datesJ, hTotalKijunsenMa, color= 'green', linewidth= 0.6)
-    ap.ax[8][0].plot(datesJ, [0 for _ in range(len(datesJ))], color= 'red')
-    ap.ax[8][0].set_ylabel('Kijunsen')
+    ap.ax[11][0].plot(datesJ, hTotalKijunsen, color= 'brown')
+    ap.ax[11][0].plot(datesJ, hTotalKijunsenMa, color= 'green', linewidth= 0.6)
+    ap.ax[11][0].plot(datesJ, [0 for _ in range(len(datesJ))], color= 'red')
+    ap.ax[11][0].set_ylabel('Kijunsen')
 
-    ap.ax[7][1].plot(datesJ, kTotalTenkansen, color= 'blue')
-    ap.ax[7][1].plot(datesJ, kTotalTenkansenMa, color= 'green', linewidth= 0.5)
-    ap.ax[7][1].plot(datesJ, [0 for _ in range(len(datesJ))], color= 'red')
-    ap.ax[7][1].set_ylabel('Tenkansen')
+    ap.ax[10][1].plot(datesJ, kTotalTenkansen, color= 'blue')
+    ap.ax[10][1].plot(datesJ, kTotalTenkansenMa, color= 'green', linewidth= 0.5)
+    ap.ax[10][1].plot(datesJ, [0 for _ in range(len(datesJ))], color= 'red')
+    ap.ax[10][1].set_ylabel('Tenkansen')
 
-    ap.ax[8][1].plot(datesJ, kTotalKijunsen, color= 'brown')
-    ap.ax[8][1].plot(datesJ, kTotalKijunsenMa, color= 'green', linewidth= 0.6)
-    ap.ax[8][1].plot(datesJ, [0 for _ in range(len(datesJ))], color= 'red')
-    ap.ax[8][1].set_ylabel('Kijunsen')
+    ap.ax[11][1].plot(datesJ, kTotalKijunsen, color= 'brown')
+    ap.ax[11][1].plot(datesJ, kTotalKijunsenMa, color= 'green', linewidth= 0.6)
+    ap.ax[11][1].plot(datesJ, [0 for _ in range(len(datesJ))], color= 'red')
+    ap.ax[11][1].set_ylabel('Kijunsen')
 
 ap.run()

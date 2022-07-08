@@ -1,7 +1,7 @@
 import datetime
 from math import log10, nan
 import pandas as pd
-from Application.Services.WriteData.WriteOnlineDataService import get_last_clientType_Data, get_last_marketWatch_data_1
+from Application.Services.WriteData.GetOnlineDataService import get_last_clientType_Data, get_last_marketWatch_data
 from Application.Utility.DateConverter import *
 from Application.Utility.Indicators.IndicatorService import calculateIchimoko, calculateSma
 from Domain.Enums.TableType import tableType
@@ -11,6 +11,7 @@ from Infrastructure.Repository.OfflineDataRepository import offlineData_repo
 from Application.Utility.AdvancedPlot import advancedPlot
 import mplfinance as mpf
 from Infrastructure.Repository.TickerRepository import ticker_repo
+import requests, time
 
 fromDate = '1400-11-01'
 toDate = '1402-07-01'
@@ -125,7 +126,7 @@ if datetime.datetime.strptime(datesG[-1], "%Y-%m-%d").date() != datetime.datetim
     dsIDs = ticker_repo().read_list_of_tickers(tickerTypes= [4])['ID']
     datesG.append(datetime.datetime.strftime(datetime.datetime.now(), "%Y-%m-%d"))
 
-    mwData = get_last_marketWatch_data_1()
+    mwData = get_last_marketWatch_data()
     ctData = get_last_clientType_Data()
 
     number = 0
@@ -408,3 +409,19 @@ if ichimokoAnalysis:
 
 
 ap.run()
+
+# ap.run(saveFig= True)
+
+# url = 'https://api.telegram.org/bot5306254202:AAF0tjiJqDrLhXtO97xqg-S5Wo2a6ofAeg4/sendPhoto'
+# files = {'photo': open(r'E:\TseExpertProject\BoursePlus\foo.png', 'rb')}
+# data = {'chat_id': '858421734',
+#         'caption': 'سلام'}
+# proxies = {'https': "socks5h://127.0.0.1:1080"}
+
+# while True:
+#     try:
+#         requests.post(url, data= data, proxies= proxies, files=files)
+#         break
+#     except:
+#         time.sleep(0.5)
+#         print('error')
