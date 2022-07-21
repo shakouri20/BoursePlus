@@ -24,7 +24,7 @@ class tickerOfflineData:
         self.volumeData = volumeItems(data, truncateNumber)
         self.indicatorData = indicatorItems(data, truncateNumber)
 
-        self.rpvp = [self.volumeData.volume[i]/self.volumeData.volumeAvg[i]*self.clientData.realPowerLog[i] for i in range(len(self.dateTime))]
+        self.rpvp = [self.volumeData.realVolume[i]/self.volumeData.volumeAvg[i]*self.clientData.realPowerLog[i] for i in range(len(self.dateTime))]
         self.realValueInput = [int((self.clientData.realBuyValue[i]-self.clientData.realSellValue[i])/10**7) for i in range(len(self.dateTime))]
 
 

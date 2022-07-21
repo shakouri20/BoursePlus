@@ -5,15 +5,15 @@ from Application.Services.OfflineLab.M_SellMiddlewares import *
 from Application.Services.OfflineLab.D_BuyMiddlewares import *
 from Application.Services.OfflineLab.D_SellMiddlewares import *
 
-name = 'تایرا'
-fromDate = '1401-01-01'
+name = 'تکشا'
+fromDate = '1400-10-01'
 toDate= '1401-12-30'
 
 IDs = [ticker_repo().read_by_name(name)['ID']]
 # IDs = ticker_repo().read_list_of_tickers(tickerTypes= [1], marketTypes=[1, 2, 3, 4 , 5, 6])['ID'][::6]
 lab = offlineLab(IDs)
 
-lab.read_data(fromDate= fromDate, toDate= toDate, timeFrame= '60', pastDataNumber= 30,
+lab.read_data(fromDate= fromDate, toDate= toDate, timeFrame= '1D', pastDataNumber= 30,
                     getPriceRange= False, getOrdersBoard= False, getTickersGroupData= False)
 # lab.print_ichimoko_data()
 lab.plot_offline_data()

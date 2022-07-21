@@ -51,11 +51,9 @@ class tickerCompare:
 
         self.priceChangeDif = [(tickerPriceChangePrc1[i]-tickerPriceChangePrc2[i])/2*50+50 for i in range(len(self.datesG))]
 
-
         self.datesJ = [gregorian_to_jalali(date) + '   ' + str((datetime.datetime.strptime(date, "%Y-%m-%d").weekday()+2)%7)+'    ' for date in self.datesG]
 
         self.ratio = [self.tickerClosePrice1[i-1] / self.tickerClosePrice2[i-1] if self.tickerClosePrice2[i] == 0 else self.tickerClosePrice1[i] / self.tickerClosePrice2[i] for i in range(len(self.datesG))]
-
 
         self.ratioMa1 = calculateSma(self.ratio, 10)
         self.ratioMa2 = calculateSma(self.ratio, 20)
@@ -64,7 +62,7 @@ class tickerCompare:
         self.ratioMacd = calculateMacd(self.ratio)
         macdAmp = max(abs(max(self.ratioMacd[33:])), abs(min(self.ratioMacd[33:])))
         self.ratioMacd = [item/macdAmp*50+50 for item in self.ratioMacd]
-        self.ratioMacdMa = calculateSma(self.ratioMacd, 5)
+        self.ratioMacdMa = calculateSma(self.ratioMacd, 10)
 
 
         

@@ -17,7 +17,7 @@ downloadPath = r'C:\Users\{}\Documents\TseClient 2.0\Adjusted'.format(userName)
 tseClientExePath = r'C:\Program Files (x86)\TSETMC\TseClient 2.0'
 
 # URLs
-clientTypeAllUrl = r'http://www.tsetmc.com/tsev2/data/ClientTypeAll.aspx?h=0&r=1'
+clientTypeAllUrl = r'http://www.tsetmc.com/tsev2/data/ClientTypeAll.aspx'
 clientTypeIUrl = r'http://www.tsetmc.com/tsev2/data/clienttype.aspx?i={}' # requires .format() for i
 marketWatchUrl = r'http://www.tsetmc.com/tsev2/data/MarketWatchPlus.aspx'
 marketWatchInitUrl = r'http://www.tsetmc.com/tsev2/data/MarketWatchInit.aspx?h=0&r=0'

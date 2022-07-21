@@ -2,16 +2,14 @@ from math import log10
 from Application.Services.OfflineLab.ResistanceSupport import calc_resistance_support
 from Application.Utility.AdvancedPlot import advancedPlot
 from Application.Utility.DateConverter import *
-from Application.Utility.Indicators.IndicatorService import calculateBB, calculateEma, calculateIchimoko, calculateSma
-from Domain.Enums.OnlineColumns import onlineColumns
+from Application.Utility.Indicators.IndicatorService import *
 from Domain.Enums.QueryOutPutType import queryOutPutType
 from Domain.Enums.TableType import tableType
 from Domain.Enums.MiddlewareOrder import middlewareOrder
 from Domain.Models.MiddlewareOffline import middlewareOffline
-from Domain.Models.TickerOfflineData import onlineData, tickersGroupData, ordersBoard, tickerOfflineData
+from Domain.Models.TickerOfflineData import tickersGroupData, tickerOfflineData
 from Domain.Models.TradeInfo import tradeInfo
 from Infrastructure.Repository.OfflineDataRepository import offlineData_repo
-from Infrastructure.Repository.OnlineDataRepository import onlineData_repo
 from Infrastructure.Repository.TickerRepository import ticker_repo
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -656,95 +654,82 @@ class offlineLab:
         tickerData: tickerOfflineData = self.tickersData[ID]
         time = tickerData.time
         realPower = tickerData.clientData.realPower
-        realPower = [min(10, realPower[i]) if realPower[i]>=1 else max(-10, -1/realPower[i]) for i in range(len(realPower))]
-        closePrice = tickerData.priceData.closePrice
-        todayPricePrc = tickerData.priceData.todayPricePRC
-        buyPerCapita = [int(tickerData.clientData.realBuyValue[i]/tickerData.clientData.realBuyNumber[i]/10**7) if tickerData.clientData.realBuyNumber[i]!=0 else 0 for i in range(len(time))]
-        sellPerCapita = [-int(tickerData.clientData.realSellValue[i]/tickerData.clientData.realSellNumber[i]/10**7) if tickerData.clientData.realSellNumber[i]!=0 else 0 for i in range(len(time))]
+        realPower = [log10(item) for item in realPower]
+        buyPerCapita = [int(tickerData.clientData.realBuyValue[i]/tickerData.clientData.realBuyNumber[i]/10**7)+1 if tickerData.clientData.realBuyNumber[i]!=0 else 1 for i in range(len(time))]
+        sellPerCapita = [int(tickerData.clientData.realSellValue[i]/tickerData.clientData.realSellNumber[i]/10**7)+1 if tickerData.clientData.realSellNumber[i]!=0 else 1 for i in range(len(time))]
         realValueInput = tickerData.realValueInput
 
-        buyPerCapitaRatio = []
-        for i in range(len(buyPerCapita)):
-            if i == 0 or sum(buyPerCapita[max(0, i-10):i]) == 0:
-                buyPerCapitaRatio.append(1)
-            else:
-                buyPerCapitaRatio.append(buyPerCapita[i]/sum(buyPerCapita[max(0, i-10):i])*len((buyPerCapita[max(0, i-10):i])))
-        sellPerCapitaRatio = []
-        for i in range(len(sellPerCapita)):
-            if i == 0 or sum(sellPerCapita[max(0, i-10):i]) == 0:
-                sellPerCapitaRatio.append(-1)
-            else:
-                try:
-                    sellPerCapitaRatio.append(-sellPerCapita[i]/sum(sellPerCapita[max(0, i-10):i])*len((sellPerCapita[max(0, i-10):i])))
-                except:
-                    sellPerCapitaRatio.append(-1)
+        buyPercapitaLog = [log10(item) for item in buyPerCapita]
+        sellPercapitaLog = [log10(item) for item in sellPerCapita]
         
-        normalVolume = [round(tickerData.volumeData.realVolume[i]/tickerData.volumeData.realVolumeAvg[i-1], 2) if i!=0 else 1 for i in range(len(time))]
-        # normalVolume = [normalVolume[i] if normalVolume[i]>=1 else max(-1/normalVolume[i], -5) if normalVolume[i]!= 0 else 0 for i in range(len(normalVolume))]
+        buyPercapitaAvg = [10**(sum(buyPercapitaLog[max(0, i-30):i])/len((buyPercapitaLog[max(0, i-30):i]))) if i != 0 else buyPerCapita[i] for i in range(len(sellPerCapita))]
+        sellPercapitaAvg = [10**(sum(sellPercapitaLog[max(0, i-30):i])/len((sellPercapitaLog[max(0, i-30):i]))) if i != 0 else sellPerCapita[i] for i in range(len(sellPerCapita))]
+
+        buyPerCapitaRatio = [log10(buyPerCapita[i])-log10(buyPercapitaAvg[i]) for i in range(len(buyPerCapita))]
+        sellPerCapitaRatio = [log10(sellPerCapita[i])-log10(sellPercapitaAvg[i]) for i in range(len(sellPerCapita))]
+
+        normalVolume = [log10(tickerData.volumeData.realVolume[i]/tickerData.volumeData.realVolumeAvg[i-1]) if i!=0 else 0 for i in range(len(time))]
 
         corporateBuyNumber = tickerData.clientData.corporateBuyNumber
-        corporateSellNumber = [-item for item in tickerData.clientData.corporateSellNumber]
+        corporateSellNumber = tickerData.clientData.corporateSellNumber
 
-        rpvp = [item*5 for item in tickerData.rpvp]
-        rpvpSum = [sum(rpvp[:i+1]) for i in range(len(rpvp))]
+        rpvp = [normalVolume[i]+realPower[i] for i in range(len(time))]
         realMoneyInputSum = [sum(realValueInput[:i+1]) for i in range(len(realValueInput))]
-        minRealMoneySum = min(realMoneyInputSum)
-        realMoneyInputSum = [item - 1.1 * minRealMoneySum for item in realMoneyInputSum]
-        # rpvpSumMa = calculateSma(rpvpSum, 10)
+        realMoneyInputSumMa = calculateSma(realMoneyInputSum)
 
-        ich = calculateIchimoko(tickerData.priceData.highPrice, tickerData.priceData.lowPrice, 9, 26, 52, True, False)
+        ap = advancedPlot(5, 2, ticker_repo().read_by_ID(ID)['FarsiTicker'])
 
-        ap = advancedPlot(4, 2, ticker_repo().read_by_ID(ID)['FarsiTicker'])
+        custom_rc = {'font.size': 8, 'figure.titlesize': 'x-large', 'figure.titleweight': 'normal'}
+        s =mpf.make_mpf_style(base_mpf_style='charles', rc=custom_rc) #
+        prices = {'Date': tickerData.dateTime, 'High': tickerData.priceData.highPrice, 'Low': tickerData.priceData.lowPrice, 'Open': tickerData.priceData.openPrice, 'Close': tickerData.priceData.closePrice}
+        dataPd = pd.DataFrame(prices)
+        dataPd.index = pd.DatetimeIndex(dataPd['Date'])
+        mpf.plot(dataPd, ax= ap.ax[0][0], axisoff = True, type= 'candle', tight_layout= True, returnfig= False, style=s, ylabel= '')
+        ap.ax[0][0].yaxis.tick_left()
+        ap.ax[0][0].yaxis.set_label_position("left")
+        ap.ax[0][0].set_yscale('log')
 
-        ap.ax[0][0].plot(time, todayPricePrc)
-        ap.ax[0][0].plot(time, rpvp)
-        ap.ax[0][0].plot(time, [0 for _ in range(len(time))], color= 'pink')
-        ap.ax[0][0].set_ylabel('Price')
+        clrs = ['red' if (x < 0) else 'green' for x in realPower]
+        ap.ax[0][1].bar(time, realPower, color= clrs)
+        ap.ax[0][1].plot(time, [0 for _ in range(len(time))], color= 'black', linewidth= 0.7, label= 'RealPower')
+        ap.ax[0][1].plot(time, [log10(2) for _ in range(len(time))], color= 'blue', linewidth= 0.7)
+        ap.ax[0][1].plot(time, [-log10(2) for _ in range(len(time))], color= 'blue', linewidth= 0.7)
+        ap.ax[0][1].legend()
 
-        ap.ax[0][1].plot(time, realPower)
-        ap.ax[0][1].plot(time, [0 for _ in range(len(time))], color= 'pink')
-        ap.ax[0][1].plot(time, [1 for _ in range(len(time))], color= 'yellow')
-        ap.ax[0][1].plot(time, [-1 for _ in range(len(time))], color= 'yellow')
-        ap.ax[0][1].set_ylabel('RealPower')
+        ap.ax[1][0].plot(time, realMoneyInputSum, label= 'RealMoney')
+        ap.ax[1][0].plot(time, realMoneyInputSumMa, color= 'black')
+        ap.ax[1][0].legend()
 
-        ap.ax[1][0].plot(time, rpvpSum)
-        ax2 = ap.ax[1][0].twinx()
-        ax2.semilogy(time, realMoneyInputSum, color= 'red')
-        ax3 = ap.ax[1][0].twinx()
-        ax3.semilogy(time, closePrice, color= 'green')
-        ap.ax[1][0].plot(time, [0 for _ in range(len(time))], color= 'pink')
-        ap.ax[1][0].set_ylabel('RPVP')
 
-        # ap.ax.plot(time, closePrice)
-        # ap.ax.plot(time, ich[0])
-        # ap.ax.plot(time, ich[1])
-        # ap.ax.plot(time, ich[2])
-        # ap.ax.plot(time, ich[3])
+        clrs = ['red' if (x < 0) else 'green' for x in normalVolume]
+        ap.ax[1][1].bar(time, normalVolume, color= clrs)
+        ap.ax[1][1].plot(time, [0 for _ in range(len(time))], color= 'black', linewidth= 0.7, label= 'Volume')
+        ap.ax[1][1].legend()
 
-        ap.ax[1][1].plot(time, normalVolume)
-        ap.ax[1][1].plot(time, [0 for _ in range(len(time))], color= 'pink')
-        ap.ax[1][1].plot(time, [1 for _ in range(len(time))], color= 'yellow')
-        ap.ax[1][1].set_ylabel('NormalVolume')
+        clrs = ['red' if (x < 0) else 'green' for x in realValueInput]
+        ap.ax[2][0].bar(time, realValueInput, color= clrs)
+        ap.ax[2][0].plot(time, [0 for _ in range(len(time))], color= 'black', linewidth= 0.7, label= 'RealMoney')
+        ap.ax[2][0].legend()
 
-        ap.ax[2][0].plot(time, realValueInput)
-        ap.ax[2][0].plot(time, [0 for _ in range(len(time))], color= 'pink')
-        ap.ax[2][0].set_ylabel('Real Volume Input')
+        clrs = ['red' if (x < 0) else 'green' for x in rpvp]
+        ap.ax[2][1].bar(time, rpvp, color= clrs)
+        ap.ax[2][1].plot(time, [0 for _ in range(len(time))], color= 'black', linewidth= 0.7, label= 'RPVP')
+        ap.ax[2][1].legend()
 
-        ap.ax[2][1].plot(time, [0 for _ in range(len(time))], color= 'pink')
-        ap.ax[2][1].plot(time, buyPerCapita, color= 'green')
-        ap.ax[2][1].plot(time, sellPerCapita, color= 'red')
-        ap.ax[2][1].set_ylabel('Percapita')
+        ap.ax[3][0].plot(time, corporateBuyNumber, color= 'green', label= 'Corporate')
+        ap.ax[3][0].plot(time, corporateSellNumber, color= 'red')
+        ap.ax[3][0].legend()
+        
+        ap.ax[3][1].plot(time, buyPerCapita, color= 'green', label= 'percapita')
+        ap.ax[3][1].plot(time, sellPerCapita, color= 'red')
+        ap.ax[3][1].legend()
 
-        ap.ax[3][0].plot(time, corporateBuyNumber)
-        ap.ax[3][0].plot(time, corporateSellNumber)
-        ap.ax[3][0].plot(time, [0 for _ in range(len(time))], color= 'pink')
-        ap.ax[3][0].set_ylabel('Corporate Number')
-
-        ap.ax[3][1].plot(time, buyPerCapitaRatio, color= 'green')
-        ap.ax[3][1].plot(time, sellPerCapitaRatio, color= 'red')
-        ap.ax[3][1].plot(time, [1 for _ in range(len(time))], color= 'blue')
-        ap.ax[3][1].plot(time, [-1 for _ in range(len(time))], color= 'blue')
-        ap.ax[3][1].set_ylabel('Percapita Ratio')
+        ap.ax[4][1].plot(time, buyPerCapitaRatio, color= 'green')
+        ap.ax[4][1].plot(time, sellPerCapitaRatio, color= 'red')
+        ap.ax[4][1].plot(time, [log10(3) for _ in range(len(time))], color= 'blue', linewidth= 0.7)
+        ap.ax[4][1].plot(time, [-log10(3) for _ in range(len(time))], color= 'blue', linewidth= 0.7)
+        ap.ax[4][1].plot(time, [0 for _ in range(len(time))], color= 'black', linewidth= 0.7, label= 'Percapita Ratio')
+        ap.ax[4][1].legend()
 
         ap.run()
 

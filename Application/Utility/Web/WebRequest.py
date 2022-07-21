@@ -6,7 +6,7 @@ def getCsvData(url: str, splitters: list[str]= [';', ',']) -> list:
 
     for _ in range(2):
         try:
-            response = requests.get(url, timeout= 1, verify=False)
+            response = requests.get(url, timeout= 0.5)
             break
         except:
             pass

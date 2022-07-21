@@ -1,729 +1,558 @@
-from datetime import datetime, timedelta
-from tkinter import E
-from Domain.ImportEnums import *
+from cmath import nan
+import datetime
+from Application.Utility.Indicators.IndicatorService import calculateIchimoko
+from Infrastructure.Repository.OfflineDataRepository import offlineData_repo
 from Infrastructure.Repository.TickerRepository import ticker_repo as tr
 from math import inf, log10
-
+from TelegramProject.DataClasses import pastData
 
 class onlineDataHandler():
 
-    def __init__(self, allowedIDs: list, historySettings: dict = {'10S': 60}) -> None:
+    def __init__(self, allowedIDs: list, historySettings: dict) -> None:
         
-        self.historySettings = historySettings
-
-        self.presentData = {}
-
-        self.history = {}
-        for key in historySettings:
-            self.history[key] = {}
-
         if allowedIDs != None:
             self.allowedIDs = allowedIDs
         else:
             self.allowedIDs = tr().read_list_of_tickers(tickerTypes = [1])['ID']
 
+        self.historySettings = historySettings
+
+        self.get_past_data()
+        self.presentData = {}
+        self.history = {}
+        for key in historySettings:
+            self.history[key] = {}
+
         self.activeIDs = []
-  
+    
+    def get_past_data(self):
+
+        print('Reading past data ...')
+        data = offlineData_repo().read_last_N_offlineData('all', Num=208, IDList= self.allowedIDs, table= 'OfflineData')
+        self.pastData = {}
+
+        number = 0
+        length = len(data)
+
+        for ID in data:
+
+            number += 1
+            print(' ', round(number/length*100, 1), ' ...', end= '\r')
+
+            try:
+                monthlyValue = sum(data[ID]['Value'][-30:])/len(data[ID]['Value'][-30:])
+                weeklyValue = sum(data[ID]['Value'][-7:])/len(data[ID]['Value'][-7:])
+
+                maxPrice8 = max(data[ID]['HighPrice'][-8:])
+                minPrice8 = min(data[ID]['LowPrice'][-8:])
+                maxPrice25 = max(data[ID]['HighPrice'][-25:])
+                minPrice25 = min(data[ID]['LowPrice'][-25:])
+
+                yesterdayMinPrice = data[ID]['LowPrice'][-1]
+
+                buyPercapitaAvg = 0
+                buyPercapitaNumber = 0
+                for i in range(-1, -min(20, len(data[ID]['RealBuyValue'])), -1):
+                    if data[ID]['RealBuyNumber'][i] != 0:
+                        buyPercapitaAvg += log10(data[ID]['RealBuyValue'][i]/data[ID]['RealBuyNumber'][i]/10**7)
+                        buyPercapitaNumber += 1
+                buyPercapitaAvg = 10**(buyPercapitaAvg/buyPercapitaNumber).real if buyPercapitaNumber!= 0 else nan
+                sellPercapitaAvg = 0
+                sellPercapitaNumber = 0
+                for i in range(-1, -min(20, len(data[ID]['RealSellValue'])), -1):
+                    if data[ID]['RealSellNumber'][i] != 0:
+                        sellPercapitaAvg += log10(data[ID]['RealSellValue'][i]/data[ID]['RealSellNumber'][i]/10**7)
+                        sellPercapitaNumber += 1
+                sellPercapitaAvg = 10**(sellPercapitaAvg/sellPercapitaNumber).real if sellPercapitaNumber!= 0 else nan
+
+                ich = calculateIchimoko(data[ID]['HighPrice'], data[ID]['LowPrice'], 9, 26, 52, False, False)
+                tenkansen = ich[0][-1]
+                kijunsen = ich[1][-1]
+                spanA = ich[2][-1]
+                spanB = ich[3][-1]
+                    
+                spanAshifted = ich[2][-26]
+                spanBshifted = ich[3][-26]
+
+                ich = calculateIchimoko(data[ID]['HighPrice'], data[ID]['LowPrice'], 104, 208, 52, False, False)
+                tenkansenLong = ich[0][-1]
+                kijunsenLong  = ich[1][-1]
+
+                self.pastData[ID] = pastData()
+                tickerPastData: pastData = self.pastData[ID]
+
+                tickerPastData.MonthlyValue= monthlyValue
+                tickerPastData.WeeklyValue= weeklyValue
+                
+                tickerPastData.Tenkansen = tenkansen
+                tickerPastData.Kijunsen = kijunsen
+                tickerPastData.SpanA = spanA
+                tickerPastData.SpanB = spanB
+                tickerPastData.SpanAshifted = spanAshifted
+                tickerPastData.SpanBshifted = spanBshifted
+
+                tickerPastData.TenkansenLong = tenkansenLong
+                tickerPastData.KijunsenLong = kijunsenLong
+
+                tickerPastData.maxPrice8 = maxPrice8
+                tickerPastData.minPrice8 = minPrice8
+                tickerPastData.maxPrice25 = maxPrice25
+                tickerPastData.minPrice25 = minPrice25
+                tickerPastData.yesterdayMinPrice = yesterdayMinPrice
+
+                tickerPastData.buyPercapitaAvg = buyPercapitaAvg
+                tickerPastData.sellPercapitaAvg = sellPercapitaAvg
+            except:
+                pass
+        
     def update_data(self, mwData: dict, ctData: dict) -> None:
 
-        self.activeIDs = list(mwData.keys())
+        self.activeIDs = [ID for ID in mwData if ID in self.allowedIDs]
+
+        now = datetime.datetime.now()
+        nowInSeconds = now.hour*3600 + now.minute*60 + now.second
+        
+        print(str(now.hour)+':'+str(now.minute)+':'+str(now.second), 'activeIDs:', len(self.activeIDs))
 
         for ID in self.activeIDs:
 
-            if ID in self.allowedIDs:
+            if ID not in self.presentData:
+                self.presentData[ID] = presentData()
 
-                if ID not in self.presentData:
-                    self.presentData[ID] = {}
+            tickerPresentData: presentData = self.presentData[ID]
 
-                if len(mwData[ID]['Constant']) != 0:
-                    for column in mwData[ID]['Constant']:
-                        self.presentData[ID][column] = mwData[ID]['Constant'][column]
+            tickerPresentData.Time = nowInSeconds
 
-                if len(mwData[ID]['Variable']) != 0 and\
-                    mwData[ID]['Variable'][onlineColumns.Volume.value] != 0 and\
-                    mwData[ID]['Variable'][onlineColumns.MinPrice.value] != 0 and\
-                        mwData[ID]['Variable'][onlineColumns.TodayPrice.value] != 0 and\
-                            mwData[ID]['Variable'][onlineColumns.LastPrice.value] != 0:
+            if len(mwData[ID]['Constant']) != 0:
+                for column in mwData[ID]['Constant']:
+                    setattr(tickerPresentData, column, mwData[ID]['Constant'][column])
 
-                    for column in mwData[ID]['Variable']:
-                        self.presentData[ID][column] = mwData[ID]['Variable'][column]
+            if len(mwData[ID]['Variable']) != 0 and\
+                mwData[ID]['Variable']['Volume'] != 0 and\
+                mwData[ID]['Variable']['MinPrice'] != 0 and\
+                    mwData[ID]['Variable']['TodayPrice'] != 0 and\
+                        mwData[ID]['Variable']['LastPrice'] != 0:
 
-                if len(mwData[ID]['OrdersBoard']) != 0:
-                    for column in mwData[ID]['OrdersBoard']:
-                        self.presentData[ID][column] = mwData[ID]['OrdersBoard'][column]
+                for column in mwData[ID]['Variable']:
+                    setattr(tickerPresentData, column, mwData[ID]['Variable'][column])
 
-        for ID in self.allowedIDs:
+            if len(mwData[ID]['OrdersBoard']) != 0:
+                for column in mwData[ID]['OrdersBoard']:
+                    setattr(tickerPresentData, column, mwData[ID]['OrdersBoard'][column])
 
-            if ID in ctData and ID in self.presentData and onlineColumns.Volume.value in self.presentData[ID]:
+        for ID in self.presentData:
 
-                if ctData[ID][onlineColumns.RealBuyVolume.value]+ctData[ID][onlineColumns.CorporateBuyVolume.value] <= self.presentData[ID][onlineColumns.Volume.value]*1.2 and\
-                    self.presentData[ID][onlineColumns.MinPrice.value] != 0 and self.presentData[ID][onlineColumns.Volume.value] != 0:
+            tickerPresentData: presentData = self.presentData[ID]
+
+            if ID in ctData and tickerPresentData.Volume != None:
+
+                if ctData[ID]['RealBuyVolume'] + ctData[ID]['CorporateBuyVolume'] <= tickerPresentData.Volume*1.2 and tickerPresentData.MinPrice != None:
 
                     for column in ctData[ID]:
-                        self.presentData[ID][column] = ctData[ID][column]
+                        setattr(tickerPresentData, column, ctData[ID][column])
+                else:
+                    print('ct Error')
 
-    def update_history(self, historyType= '10S') -> None:
+    def update_history(self, historyType) -> None:
 
-        now = datetime.now()
+        now = datetime.datetime.now()
         now = now.hour*3600 + now.minute*60 + now.second
 
         for ID in self.presentData:
 
             if ID not in self.history[historyType]:
-                self.history[historyType][ID] = {}
+                self.history[historyType][ID] = historyData()
 
-            if onlineColumns.Time.value not in self.history[historyType][ID]:
-                self.history[historyType][ID][onlineColumns.Time.value] = [now]
-            else:
-                self.history[historyType][ID][onlineColumns.Time.value].append(now)
-                if self.historySettings[historyType] != None:
-                    self.history[historyType][ID][onlineColumns.Time.value] = self.history[historyType][ID][onlineColumns.Time.value][-self.historySettings[historyType]:] 
+            tickerPresentData: presentData = self.presentData[ID]
+            tickerHistoryData: historyData = self.history[historyType][ID]
 
-            for column in self.presentData[ID]:
-                
-                if column in [onlineColumns.LastPrice.value,
-                                onlineColumns.Volume.value, 
-                                onlineColumns.MinPrice.value, 
-                                onlineColumns.RealBuyVolume.value,
-                                onlineColumns.RealSellVolume.value,
-                                onlineColumns.RealBuyNumber.value,
-                                onlineColumns.RealSellNumber.value,
-                                onlineColumns.CorporateBuyVolume.value,
-                                onlineColumns.CorporateSellVolume.value,
-                                onlineColumns.CorporateBuyNumber.value,
-                                onlineColumns.CorporateSellNumber.value,
-                                onlineColumns.DemandVolume1.value,
-                                onlineColumns.DemandPrice1.value,
-                                onlineColumns.DemandNumber1.value,
-                                onlineColumns.SupplyVolume1.value,
-                                onlineColumns.SupplyPrice1.value,
-                                onlineColumns.SupplyNumber1.value]:
+            historyAttrs = vars(tickerHistoryData)
 
-                    if column not in self.history[historyType][ID]:
-                        self.history[historyType][ID][column] = [self.presentData[ID][column]]
+            for column in historyAttrs:
 
-                    else:
-                        self.history[historyType][ID][column].append(self.presentData[ID][column])
-                        if self.historySettings[historyType] != None:
-                            self.history[historyType][ID][column] = self.history[historyType][ID][column][-self.historySettings[historyType]:] 
+                if column == 'Time':
+                    historyAttrs[column].append(now)
 
-    def check_allowedIDs(self, allowedIDs: list) -> None:
+                elif getattr(tickerPresentData, column) != None:
+                    historyAttrs[column].append(getattr(tickerPresentData, column))
 
-        if allowedIDs == None:
-            newallowedIDs = list(self.history.keys())
-        else:
-            tempallowedIDs = allowedIDs.copy()
-            for ID in tempallowedIDs:
-                if ID not in self.history:
-                    allowedIDs.remove(ID)
-            newallowedIDs = allowedIDs
-        return newallowedIDs
+                if self.historySettings[historyType]['cacheSize'] != None:
+                    historyAttrs[column] = historyAttrs[column][-self.historySettings[historyType]['cacheSize']:] 
 
-    def time(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        if num == 0:
-            data = {ID: self.history[ID][onlineColumns.Time.value][::-1][::decNum][::-1] for ID in allowedIDs}
-        else:
-            data = {ID: self.history[ID][onlineColumns.Time.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs}
-        return data
+class presentData:
+    def __init__(self) -> None:
 
-    def todayPrice(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        if num == 0:
-            data = {ID: self.history[ID][onlineColumns.TodayPrice.value][::-1][::decNum][::-1] for ID in allowedIDs}
-        else:
-            data = {ID: self.history[ID][onlineColumns.TodayPrice.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs}
-        return data
+        self.Time = None
+        self.FirstPrice = None
+        self.TodayPrice = None
+        self.LastPrice = None
+        self.Volume = None
+        self.MinPrice = None
+        self.MaxPrice = None
+        self.YesterdayPrice = None
+        self.BaseVolume = None
+        self.MaxAllowedPrice = None
+        self.MinAllowedPrice = None
+        self.ShareNumber = None
 
-    def lastPrice(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        if num == 0:
-            data = {ID: self.history[ID][onlineColumns.LastPrice.value][::-1][::decNum][::-1] for ID in allowedIDs}
-        else:
-            data = {ID: self.history[ID][onlineColumns.LastPrice.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs}
-        return data
-    
-    def number(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        if num == 0:
-            data = {ID: self.history[ID][onlineColumns.Number.value][::-1][::decNum][::-1] for ID in allowedIDs}
-        else:
-            data = {ID: self.history[ID][onlineColumns.Number.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs}
-        return data
+        self.SupplyNumber1 = None
+        self.DemandNumber1 = None
+        self.DemandPrice1 = None
+        self.SupplyPrice1 = None
+        self.DemandVolume1 = None
+        self.SupplyVolume1 = None
 
-    def volume(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        if num == 0:
-            data = {ID: self.history[ID][onlineColumns.Volume.value][::-1][::decNum][::-1] for ID in allowedIDs}
-        else:
-            data = {ID: self.history[ID][onlineColumns.Volume.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs}
-        return data
+        self.SupplyNumber2 = None
+        self.DemandNumber2 = None
+        self.DemandPrice2 = None
+        self.SupplyPrice2 = None
+        self.DemandVolume2 = None
+        self.SupplyVolume2 = None
 
-    def minPrice(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        if num == 0:
-            data = {ID: self.history[ID][onlineColumns.MinPrice.value][::-1][::decNum][::-1] for ID in allowedIDs}
-        else:
-            data = {ID: self.history[ID][onlineColumns.MinPrice.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs}
-        return data
+        self.SupplyNumber3 = None
+        self.DemandNumber3 = None
+        self.DemandPrice3 = None
+        self.SupplyPrice3 = None
+        self.DemandVolume3 = None
+        self.SupplyVolume3 = None
 
-    def maxPrice(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        if num == 0:
-            data = {ID: self.history[ID][onlineColumns.MaxPrice.value][::-1][::decNum][::-1] for ID in allowedIDs}
-        else:
-            data = {ID: self.history[ID][onlineColumns.MaxPrice.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs}
-        return data
+        self.SupplyNumber4 = None
+        self.DemandNumber4 = None
+        self.DemandPrice4 = None
+        self.SupplyPrice4 = None
+        self.DemandVolume4 = None
+        self.SupplyVolume4 = None
 
-    def yesterdayPrice(self, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        return {ID: self.history[ID][onlineColumns.YesterdayPrice.value] for ID in allowedIDs}
+        self.SupplyNumber5 = None
+        self.DemandNumber5 = None
+        self.DemandPrice5 = None
+        self.SupplyPrice5 = None
+        self.DemandVolume5 = None
+        self.SupplyVolume5 = None
 
-    def minAllowedPrice(self, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        return {ID: self.history[ID][onlineColumns.MinAllowedPrice.value] for ID in allowedIDs}
+        self.RealBuyNumber = None
+        self.CorporateBuyNumber = None
+        self.RealBuyVolume = None
+        self.CorporateBuyVolume = None
+        self.RealSellNumber = None
+        self.CorporateSellNumber = None
+        self.RealSellVolume = None
+        self.CorporateSellVolume = None
 
-    def maxAllowedPrice(self, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        return {ID: self.history[ID][onlineColumns.MaxAllowedPrice.value] for ID in allowedIDs}
+class historyData:
+    def __init__(self) -> None:
 
-    def realValues(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        if num == 0:
-            data = {onlineColumns.RealBuyNumber.value: {ID: self.history[ID][onlineColumns.RealBuyNumber.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.RealBuyVolume.value: {ID: self.history[ID][onlineColumns.RealBuyVolume.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.RealSellNumber.value: {ID: self.history[ID][onlineColumns.RealSellNumber.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.RealSellVolume.value: {ID: self.history[ID][onlineColumns.RealSellVolume.value][::-1][::decNum][::-1] for ID in allowedIDs}}
-        else:
-            data = {onlineColumns.RealBuyNumber.value: {ID: self.history[ID][onlineColumns.RealBuyNumber.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in self.history},
-                onlineColumns.RealBuyVolume.value: {ID: self.history[ID][onlineColumns.RealBuyVolume.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in self.history},
-                onlineColumns.RealSellNumber.value: {ID: self.history[ID][onlineColumns.RealSellNumber.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in self.history},
-                onlineColumns.RealSellVolume.value: {ID: self.history[ID][onlineColumns.RealSellVolume.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in self.history}}
-        return data
+        self.Time = []
+        self.LastPrice = []
+        self.Volume = [] 
+        self.MinPrice = [] 
+        self.MaxPrice = [] 
+        self.RealBuyVolume = []
+        self.RealSellVolume = []
+        self.RealBuyNumber = []
+        self.RealSellNumber = []
+        self.CorporateBuyVolume = []
+        self.CorporateSellVolume = []
+        self.CorporateBuyNumber = []
+        self.CorporateSellNumber = []
+        self.DemandVolume1 = []
+        self.DemandPrice1 = []
+        self.DemandNumber1 = []
+        self.SupplyVolume1 = []
+        self.SupplyPrice1 = []
+        self.SupplyNumber1 = []
 
-    def corporateValues(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        if num == 0:
-            data = {onlineColumns.CorporateBuyNumber.value: {ID: self.history[ID][onlineColumns.CorporateBuyNumber.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                onlineColumns.CorporateBuyVolume.value: {ID: self.history[ID][onlineColumns.CorporateBuyVolume.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                onlineColumns.CorporateSellNumber.value: {ID: self.history[ID][onlineColumns.CorporateSellNumber.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                onlineColumns.CorporateSellVolume.value: {ID: self.history[ID][onlineColumns.CorporateSellVolume.value][::-1][::decNum][::-1] for ID in allowedIDs}}
-        else:
-            data = {onlineColumns.CorporateBuyNumber.value: {ID: self.history[ID][onlineColumns.CorporateBuyNumber.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.CorporateBuyVolume.value: {ID: self.history[ID][onlineColumns.CorporateBuyVolume.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.CorporateSellNumber.value: {ID: self.history[ID][onlineColumns.CorporateSellNumber.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.CorporateSellVolume.value: {ID: self.history[ID][onlineColumns.CorporateSellVolume.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs}}
-        return data
 
-    def row1(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
 
-        if num == 0:
-            row1 = {onlineColumns.SupplyNumber1.value: {ID: self.history[ID][onlineColumns.SupplyNumber1.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.SupplyVolume1.value: {ID: self.history[ID][onlineColumns.SupplyVolume1.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.SupplyPrice1.value: {ID: self.history[ID][onlineColumns.SupplyPrice1.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.DemandPrice1.value: {ID: self.history[ID][onlineColumns.DemandPrice1.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.DemandVolume1.value: {ID: self.history[ID][onlineColumns.DemandVolume1.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.DemandNumber1.value: {ID: self.history[ID][onlineColumns.DemandNumber1.value][::-1][::decNum][::-1] for ID in allowedIDs}}
-        else:
-            row1 = {onlineColumns.SupplyNumber1.value: {ID: self.history[ID][onlineColumns.SupplyNumber1.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.SupplyVolume1.value: {ID: self.history[ID][onlineColumns.SupplyVolume1.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.SupplyPrice1.value: {ID: self.history[ID][onlineColumns.SupplyPrice1.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.DemandPrice1.value: {ID: self.history[ID][onlineColumns.DemandPrice1.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.DemandVolume1.value: {ID: self.history[ID][onlineColumns.DemandVolume1.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.DemandNumber1.value: {ID: self.history[ID][onlineColumns.DemandNumber1.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs}}
+    # def lastPricePrc(self, historyType, allowedIDs= None, num = 0) -> dict:
+    #     lastPrice = self.lastPrice(historyType, allowedIDs, num)
+    #     return {ID: [round((lastPrice[ID][i]-self.presentData[ID]['YesterdayPrice'])/self.presentData[ID]['YesterdayPrice']*100, 2) for i in range(len(lastPrice[ID]))] for ID in lastPrice}
 
-        for ID in allowedIDs:
-            for i in range(len(row1[onlineColumns.SupplyPrice1.value][ID])):
-                if row1[onlineColumns.SupplyPrice1.value][ID][i] > self.history[ID][onlineColumns.MaxAllowedPrice.value]:
-                    row1[onlineColumns.SupplyPrice1.value][ID][i] = self.history[ID][onlineColumns.MaxAllowedPrice.value]
-                    row1[onlineColumns.SupplyVolume1.value][ID][i] = 0
-                    row1[onlineColumns.SupplyNumber1.value][ID][i] = 0
-                if row1[onlineColumns.DemandPrice1.value][ID][i] < self.history[ID][onlineColumns.MinAllowedPrice.value]:
-                    row1[onlineColumns.DemandPrice1.value][ID][i] = self.history[ID][onlineColumns.MinAllowedPrice.value]
-                    row1[onlineColumns.DemandVolume1.value][ID][i] = 0
-                    row1[onlineColumns.DemandNumber1.value][ID][i] = 0
-        return row1
-
-    def row2(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-
-        if num == 0:
-            row2 = {onlineColumns.SupplyNumber2.value: {ID: self.history[ID][onlineColumns.SupplyNumber2.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.SupplyVolume2.value: {ID: self.history[ID][onlineColumns.SupplyVolume2.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.SupplyPrice2.value: {ID: self.history[ID][onlineColumns.SupplyPrice2.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.DemandPrice2.value: {ID: self.history[ID][onlineColumns.DemandPrice2.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.DemandVolume2.value: {ID: self.history[ID][onlineColumns.DemandVolume2.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.DemandNumber2.value: {ID: self.history[ID][onlineColumns.DemandNumber2.value][::-1][::decNum][::-1] for ID in allowedIDs}}
-        else:
-            row2 = {onlineColumns.SupplyNumber2.value: {ID: self.history[ID][onlineColumns.SupplyNumber2.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.SupplyVolume2.value: {ID: self.history[ID][onlineColumns.SupplyVolume2.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.SupplyPrice2.value: {ID: self.history[ID][onlineColumns.SupplyPrice2.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.DemandPrice2.value: {ID: self.history[ID][onlineColumns.DemandPrice2.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.DemandVolume2.value: {ID: self.history[ID][onlineColumns.DemandVolume2.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.DemandNumber2.value: {ID: self.history[ID][onlineColumns.DemandNumber2.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs}}
-
-        for ID in allowedIDs:
-            for i in range(len(row2[onlineColumns.SupplyPrice2.value][ID])):
-                if row2[onlineColumns.SupplyPrice2.value][ID][i] > self.history[ID][onlineColumns.MaxAllowedPrice.value]:
-                    row2[onlineColumns.SupplyPrice2.value][ID][i] = self.history[ID][onlineColumns.MaxAllowedPrice.value]
-                    row2[onlineColumns.SupplyVolume2.value][ID][i] = 0
-                    row2[onlineColumns.SupplyNumber2.value][ID][i] = 0
-                if row2[onlineColumns.DemandPrice2.value][ID][i] < self.history[ID][onlineColumns.MinAllowedPrice.value]:
-                    row2[onlineColumns.SupplyPrice2.value][ID][i] = self.history[ID][onlineColumns.MinAllowedPrice.value]
-                    row2[onlineColumns.DemandVolume2.value][ID][i] = 0
-                    row2[onlineColumns.DemandNumber2.value][ID][i] = 0
-        return row2
-
-    def row3(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-
-        if num == 0:
-            row3 = {onlineColumns.SupplyNumber3.value: {ID: self.history[ID][onlineColumns.SupplyNumber3.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.SupplyVolume3.value: {ID: self.history[ID][onlineColumns.SupplyVolume3.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.SupplyPrice3.value: {ID: self.history[ID][onlineColumns.SupplyPrice3.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.DemandPrice3.value: {ID: self.history[ID][onlineColumns.DemandPrice3.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.DemandVolume3.value: {ID: self.history[ID][onlineColumns.DemandVolume3.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.DemandNumber3.value: {ID: self.history[ID][onlineColumns.DemandNumber3.value][::-1][::decNum][::-1] for ID in allowedIDs}}
-        else:
-            row3 = {onlineColumns.SupplyNumber3.value: {ID: self.history[ID][onlineColumns.SupplyNumber3.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.SupplyVolume3.value: {ID: self.history[ID][onlineColumns.SupplyVolume3.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.SupplyPrice3.value: {ID: self.history[ID][onlineColumns.SupplyPrice3.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.DemandPrice3.value: {ID: self.history[ID][onlineColumns.DemandPrice3.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.DemandVolume3.value: {ID: self.history[ID][onlineColumns.DemandVolume3.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.DemandNumber3.value: {ID: self.history[ID][onlineColumns.DemandNumber3.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs}}
-
-        for ID in allowedIDs:
-            for i in range(len(row3[onlineColumns.SupplyPrice3.value][ID])):
-                if row3[onlineColumns.SupplyPrice3.value][ID][i] > self.history[ID][onlineColumns.MaxAllowedPrice.value]:
-                    row3[onlineColumns.SupplyPrice3.value][ID][i] = self.history[ID][onlineColumns.MaxAllowedPrice.value]
-                    row3[onlineColumns.SupplyVolume3.value][ID][i] = 0
-                    row3[onlineColumns.SupplyNumber3.value][ID][i] = 0
-                if row3[onlineColumns.DemandPrice3.value][ID][i] < self.history[ID][onlineColumns.MinAllowedPrice.value]:
-                    row3[onlineColumns.SupplyPrice3.value][ID][i] = self.history[ID][onlineColumns.MinAllowedPrice.value]
-                    row3[onlineColumns.DemandVolume3.value][ID][i] = 0
-                    row3[onlineColumns.DemandNumber3.value][ID][i] = 0
-        return row3
-
-    def row4(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
+    # def realPower(self, historyType, allowedIDs= None, num = 0) -> dict:
         
-        if num == 0:
-            row4 = {onlineColumns.SupplyNumber4.value: {ID: self.history[ID][onlineColumns.SupplyNumber4.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.SupplyVolume4.value: {ID: self.history[ID][onlineColumns.SupplyVolume4.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.SupplyPrice4.value: {ID: self.history[ID][onlineColumns.SupplyPrice4.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.DemandPrice4.value: {ID: self.history[ID][onlineColumns.DemandPrice4.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.DemandVolume4.value: {ID: self.history[ID][onlineColumns.DemandVolume4.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.DemandNumber4.value: {ID: self.history[ID][onlineColumns.DemandNumber4.value][::-1][::decNum][::-1] for ID in allowedIDs}}
-        else:
-            row4 = {onlineColumns.SupplyNumber4.value: {ID: self.history[ID][onlineColumns.SupplyNumber4.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.SupplyVolume4.value: {ID: self.history[ID][onlineColumns.SupplyVolume4.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.SupplyPrice4.value: {ID: self.history[ID][onlineColumns.SupplyPrice4.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.DemandPrice4.value: {ID: self.history[ID][onlineColumns.DemandPrice4.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.DemandVolume4.value: {ID: self.history[ID][onlineColumns.DemandVolume4.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.DemandNumber4.value: {ID: self.history[ID][onlineColumns.DemandNumber4.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs}}
+    #     realValues = self.realValues(decNum, num, allowedIDs)
+    #     realBuyVolume = realValues['RealBuyVolume']
+    #     realBuyNumber = realValues['RealBuyNumber']
+    #     realSellVolume = realValues['RealSellVolume']
+    #     realSellNumber = realValues['RealSellNumber']
+    #     realPower ={}
 
-        for ID in allowedIDs:
-            for i in range(len(row4[onlineColumns.SupplyPrice4.value][ID])):
-                if row4[onlineColumns.SupplyPrice4.value][ID][i] > self.history[ID][onlineColumns.MaxAllowedPrice.value]:
-                    row4[onlineColumns.SupplyPrice4.value][ID][i] = self.history[ID][onlineColumns.MaxAllowedPrice.value]
-                    row4[onlineColumns.SupplyVolume4.value][ID][i] = 0
-                    row4[onlineColumns.SupplyNumber4.value][ID][i] = 0
-                if row4[onlineColumns.DemandPrice4.value][ID][i] < self.history[ID][onlineColumns.MinAllowedPrice.value]:
-                    row4[onlineColumns.SupplyPrice4.value][ID][i] = self.history[ID][onlineColumns.MinAllowedPrice.value]
-                    row4[onlineColumns.DemandVolume4.value][ID][i] = 0
-                    row4[onlineColumns.DemandNumber4.value][ID][i] = 0
-        return row4
+    #     IDs = allowedIDs if allowedIDs != None else self.history[historyType]
+    #     for ID in IDs:
+    #         realPower[ID] = []
+    #         for i in range(len(realBuyVolume[ID])):
+    #             try:
+    #                 realPower[ID].append((realBuyVolume[ID][i]/realBuyNumber[ID][i])/(realSellVolume[ID][i]/realSellNumber[ID][i]))
+    #             except:
+    #                 realPower[ID].append(1)
 
-    def row5(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
+    #     return realPower
 
-        if num == 0:
-            row5 = {onlineColumns.SupplyNumber5.value: {ID: self.history[ID][onlineColumns.SupplyNumber5.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.SupplyVolume5.value: {ID: self.history[ID][onlineColumns.SupplyVolume5.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.SupplyPrice5.value: {ID: self.history[ID][onlineColumns.SupplyPrice5.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.DemandPrice5.value: {ID: self.history[ID][onlineColumns.DemandPrice5.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.DemandVolume5.value: {ID: self.history[ID][onlineColumns.DemandVolume5.value][::-1][::decNum][::-1] for ID in allowedIDs},
-                    onlineColumns.DemandNumber5.value: {ID: self.history[ID][onlineColumns.DemandNumber5.value][::-1][::decNum][::-1] for ID in allowedIDs}}
-        else:
-            row5 = {onlineColumns.SupplyNumber5.value: {ID: self.history[ID][onlineColumns.SupplyNumber5.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.SupplyVolume5.value: {ID: self.history[ID][onlineColumns.SupplyVolume5.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.SupplyPrice5.value: {ID: self.history[ID][onlineColumns.SupplyPrice5.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.DemandPrice5.value: {ID: self.history[ID][onlineColumns.DemandPrice5.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.DemandVolume5.value: {ID: self.history[ID][onlineColumns.DemandVolume5.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs},
-                onlineColumns.DemandNumber5.value: {ID: self.history[ID][onlineColumns.DemandNumber5.value][:-decNum*num-1:-1][::decNum][:num][::-1] for ID in allowedIDs}}
+    # def demandValue(self, historyType, allowedIDs= None, num = 0) -> dict:
+        
+    #     row1 = self.row1(decNum, num, allowedIDs)
+    #     row2 = self.row2(decNum, num, allowedIDs)
+    #     row3 = self.row3(decNum, num, allowedIDs)
+    #     row4 = self.row4(decNum, num, allowedIDs)
+    #     row5 = self.row5(decNum, num, allowedIDs)
 
-        for ID in allowedIDs:
-            for i in range(len(row5[onlineColumns.SupplyPrice5.value][ID])):
-                if row5[onlineColumns.SupplyPrice5.value][ID][i] > self.history[ID][onlineColumns.MaxAllowedPrice.value]:
-                    row5[onlineColumns.SupplyPrice5.value][ID][i] = self.history[ID][onlineColumns.MaxAllowedPrice.value]
-                    row5[onlineColumns.SupplyVolume5.value][ID][i] = 0
-                    row5[onlineColumns.SupplyNumber5.value][ID][i] = 0
-                if row5[onlineColumns.DemandPrice5.value][ID][i] < self.history[ID][onlineColumns.MinAllowedPrice.value]:
-                    row5[onlineColumns.SupplyPrice5.value][ID][i] = self.history[ID][onlineColumns.MinAllowedPrice.value]
-                    row5[onlineColumns.DemandVolume5.value][ID][i] = 0
-                    row5[onlineColumns.DemandNumber5.value][ID][i] = 0
-        return row5
+    #     demandValue = {}
 
-    def lastPricePRC(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        lastPrice = self.lastPrice(decNum, num, allowedIDs)
-        return {ID: [(lastPrice[ID][i]-self.history[ID][onlineColumns.YesterdayPrice.value])/self.history[ID][onlineColumns.YesterdayPrice.value]*100 for i in range(len(lastPrice[ID]))] for ID in allowedIDs}
+    #     IDs = allowedIDs if allowedIDs != None else self.history[historyType]
+    #     for ID in IDs:
 
-    def todayPricePRC(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
+    #         length = len(row1['DemandVolume1'][ID])
 
-        todayPrice = self.todayPrice(decNum, num, allowedIDs)
-        return {ID: [(todayPrice[ID][i]-self.history[ID][onlineColumns.YesterdayPrice.value])/self.history[ID][onlineColumns.YesterdayPrice.value]*100 for i in range(len(todayPrice[ID]))] for ID in allowedIDs}
+    #         value1 = [row1['DemandVolume1'][ID][i] * row1['DemandPrice1'][ID][i] for i in range(length)]
+    #         value2 = [row2['DemandVolume2'][ID][i] * row2['DemandPrice2'][ID][i] for i in range(length)]
+    #         value3 = [row3['DemandVolume3'][ID][i] * row3['DemandPrice3'][ID][i] for i in range(length)]
+    #         value4 = [row4['DemandVolume4'][ID][i] * row4['DemandPrice4'][ID][i] for i in range(length)]
+    #         value5 = [row5['DemandVolume5'][ID][i] * row5['DemandPrice5'][ID][i] for i in range(length)]
 
-    def perCapitaBuy(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
+    #         demandValuesZip = zip(value1, value2, value3, value4, value5)
+    #         demandValue[ID] = [(v1 + v2 + v3 + v4 + v5)/10000000 for (v1, v2, v3, v4, v5) in demandValuesZip]
 
-        lastPrice = self.lastPrice(decNum, num, allowedIDs)
-        realValues = self.realValues(decNum, num, allowedIDs)
-        realBuyVolume = realValues[onlineColumns.RealBuyVolume.value]
-        realBuyNumber = realValues[onlineColumns.RealBuyNumber.value]
-        perCapitaBuy ={}
+    #     return demandValue
 
-        for ID in allowedIDs:
-            perCapitaBuy[ID] = []
-            for i in range(len(lastPrice[ID])):
-                try:
-                    perCapitaBuy[ID].append(int(lastPrice[ID][i]*realBuyVolume[ID][i]/realBuyNumber[ID][i]/10000000))
-                except:
-                    perCapitaBuy[ID].append(0)
+    # def supplyValue(self, historyType, allowedIDs= None, num = 0) -> dict:
+        
+    #     row1 = self.row1(decNum, num, allowedIDs)
+    #     row2 = self.row2(decNum, num, allowedIDs)
+    #     row3 = self.row3(decNum, num, allowedIDs)
+    #     row4 = self.row4(decNum, num, allowedIDs)
+    #     row5 = self.row5(decNum, num, allowedIDs)
 
-        return perCapitaBuy
+    #     supplyValue = {}
 
-    def perCapitaSell(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
+    #     IDs = allowedIDs if allowedIDs != None else self.history[historyType]
+    #     for ID in IDs:
 
-        lastPrice = self.lastPrice(decNum, num, allowedIDs)
-        realValues = self.realValues(decNum, num, allowedIDs)
-        realSelVolume = realValues[onlineColumns.RealSellVolume.value]
-        realSellNumber = realValues[onlineColumns.RealSellNumber.value]
-        perCapitaSell ={}
+    #         length = len(row1['SupplyVolume1'][ID])
 
-        for ID in allowedIDs:
-            perCapitaSell[ID] = []
-            for i in range(len(lastPrice[ID])):
-                try:
-                    perCapitaSell[ID].append(int(lastPrice[ID][i]*realSelVolume[ID][i]/realSellNumber[ID][i]/10000000))
-                except:
-                    perCapitaSell[ID].append(0)
+    #         value1 = [row1['SupplyVolume1'][ID][i] * row1['SupplyPrice1'][ID][i] for i in range(length)]
+    #         value2 = [row2['SupplyVolume2'][ID][i] * row2['SupplyPrice2'][ID][i] for i in range(length)]
+    #         value3 = [row3['SupplyVolume3'][ID][i] * row3['SupplyPrice3'][ID][i] for i in range(length)]
+    #         value4 = [row4['SupplyVolume4'][ID][i] * row4['SupplyPrice4'][ID][i] for i in range(length)]
+    #         value5 = [row5['SupplyVolume5'][ID][i] * row5['SupplyPrice5'][ID][i] for i in range(length)]
 
-        return perCapitaSell
+    #         supplyValuesZip = zip(value1, value2, value3, value4, value5)
+    #         supplyValue[ID] = [(v1 + v2 + v3 + v4 + v5)/10000000 for (v1, v2, v3, v4, v5) in supplyValuesZip]
 
-    def realPower(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-
-        realValues = self.realValues(decNum, num, allowedIDs)
-        realBuyVolume = realValues[onlineColumns.RealBuyVolume.value]
-        realBuyNumber = realValues[onlineColumns.RealBuyNumber.value]
-        realSellVolume = realValues[onlineColumns.RealSellVolume.value]
-        realSellNumber = realValues[onlineColumns.RealSellNumber.value]
-        realPower ={}
-
-        for ID in allowedIDs:
-            realPower[ID] = []
-            for i in range(len(realBuyVolume[ID])):
-                try:
-                    realPower[ID].append((realBuyVolume[ID][i]/realBuyNumber[ID][i])/(realSellVolume[ID][i]/realSellNumber[ID][i]))
-                except:
-                    realPower[ID].append(1)
-
-        return realPower
-
-    def demandToSupplyPower(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-
-        row1 = self.row1(decNum, num, allowedIDs)
-        row2 = self.row2(decNum, num, allowedIDs)
-        row3 = self.row3(decNum, num, allowedIDs)
-        row4 = self.row4(decNum, num, allowedIDs)
-        row5 = self.row5(decNum, num, allowedIDs)
-
-        demandToSupplyPower = {}
-
-        for ID in allowedIDs:
-            demandVolumesZip = zip(row1[onlineColumns.DemandVolume1.value][ID], row2[onlineColumns.DemandVolume2.value][ID], row3[onlineColumns.DemandVolume3.value][ID], row4[onlineColumns.DemandVolume4.value][ID], row5[onlineColumns.DemandVolume5.value][ID])
-            demandVolumes = [v1 + v2 + v3 + v4 + v5 for (v1, v2, v3, v4, v5) in demandVolumesZip]
-            supplyVolumesZip = zip(row1[onlineColumns.SupplyVolume1.value][ID], row2[onlineColumns.SupplyVolume2.value][ID], row3[onlineColumns.SupplyVolume3.value][ID], row4[onlineColumns.SupplyVolume4.value][ID], row5[onlineColumns.SupplyVolume5.value][ID])
-            supplyVolumes = [v1 + v2 + v3 + v4 + v5 for (v1, v2, v3, v4, v5) in supplyVolumesZip]
-
-            demandToSupplyPower[ID] = []
-
-            for i in range(len(demandVolumes)):
-                if demandVolumes[i] < 0 or supplyVolumes[i] < 0:
-                    demandToSupplyPower[ID].append(0)
-                elif demandVolumes[i] == 0:
-                    demandToSupplyPower[ID].append(0)
-                elif supplyVolumes[i] == 0:
-                    demandToSupplyPower[ID].append(0)
-                else:
-                    demandToSupplyPower[ID].append(log10(demandVolumes[i]/supplyVolumes[i]))
-
-        return demandToSupplyPower
-
-    def demandValue(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-
-        row1 = self.row1(decNum, num, allowedIDs)
-        row2 = self.row2(decNum, num, allowedIDs)
-        row3 = self.row3(decNum, num, allowedIDs)
-        row4 = self.row4(decNum, num, allowedIDs)
-        row5 = self.row5(decNum, num, allowedIDs)
-
-        demandValue = {}
-
-        for ID in allowedIDs:
-
-            length = len(row1[onlineColumns.DemandVolume1.value][ID])
-
-            value1 = [row1[onlineColumns.DemandVolume1.value][ID][i] * row1[onlineColumns.DemandPrice1.value][ID][i] for i in range(length)]
-            value2 = [row2[onlineColumns.DemandVolume2.value][ID][i] * row2[onlineColumns.DemandPrice2.value][ID][i] for i in range(length)]
-            value3 = [row3[onlineColumns.DemandVolume3.value][ID][i] * row3[onlineColumns.DemandPrice3.value][ID][i] for i in range(length)]
-            value4 = [row4[onlineColumns.DemandVolume4.value][ID][i] * row4[onlineColumns.DemandPrice4.value][ID][i] for i in range(length)]
-            value5 = [row5[onlineColumns.DemandVolume5.value][ID][i] * row5[onlineColumns.DemandPrice5.value][ID][i] for i in range(length)]
-
-            demandValuesZip = zip(value1, value2, value3, value4, value5)
-            demandValue[ID] = [(v1 + v2 + v3 + v4 + v5)/10000000 for (v1, v2, v3, v4, v5) in demandValuesZip]
-
-        return demandValue
-
-    def supplyValue(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-
-        row1 = self.row1(decNum, num, allowedIDs)
-        row2 = self.row2(decNum, num, allowedIDs)
-        row3 = self.row3(decNum, num, allowedIDs)
-        row4 = self.row4(decNum, num, allowedIDs)
-        row5 = self.row5(decNum, num, allowedIDs)
-
-        supplyValue = {}
-
-        for ID in allowedIDs:
-
-            length = len(row1[onlineColumns.SupplyVolume1.value][ID])
-
-            value1 = [row1[onlineColumns.SupplyVolume1.value][ID][i] * row1[onlineColumns.SupplyPrice1.value][ID][i] for i in range(length)]
-            value2 = [row2[onlineColumns.SupplyVolume2.value][ID][i] * row2[onlineColumns.SupplyPrice2.value][ID][i] for i in range(length)]
-            value3 = [row3[onlineColumns.SupplyVolume3.value][ID][i] * row3[onlineColumns.SupplyPrice3.value][ID][i] for i in range(length)]
-            value4 = [row4[onlineColumns.SupplyVolume4.value][ID][i] * row4[onlineColumns.SupplyPrice4.value][ID][i] for i in range(length)]
-            value5 = [row5[onlineColumns.SupplyVolume5.value][ID][i] * row5[onlineColumns.SupplyPrice5.value][ID][i] for i in range(length)]
-
-            supplyValuesZip = zip(value1, value2, value3, value4, value5)
-            supplyValue[ID] = [(v1 + v2 + v3 + v4 + v5)/10000000 for (v1, v2, v3, v4, v5) in supplyValuesZip]
-
-        return supplyValue
+    #     return supplyValue
                 
-    def demandPerCapita(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
+    # def demandPerCapita(self, historyType, allowedIDs= None, num = 0) -> dict:
+        
+    #     number1 = self.row1(decNum, num, allowedIDs)['DemandNumber1']
+    #     number2 = self.row2(decNum, num, allowedIDs)['DemandNumber2']
+    #     number3 = self.row3(decNum, num, allowedIDs)['DemandNumber3']
+    #     number4 = self.row4(decNum, num, allowedIDs)['DemandNumber4']
+    #     number5 = self.row5(decNum, num, allowedIDs)['DemandNumber5']
 
-        number1 = self.row1(decNum, num, allowedIDs)[onlineColumns.DemandNumber1.value]
-        number2 = self.row2(decNum, num, allowedIDs)[onlineColumns.DemandNumber2.value]
-        number3 = self.row3(decNum, num, allowedIDs)[onlineColumns.DemandNumber3.value]
-        number4 = self.row4(decNum, num, allowedIDs)[onlineColumns.DemandNumber4.value]
-        number5 = self.row5(decNum, num, allowedIDs)[onlineColumns.DemandNumber5.value]
+    #     demandValue = self.demandValue(decNum, num, allowedIDs)
 
-        demandValue = self.demandValue(decNum, num, allowedIDs)
+    #     demandPerCapita = {}
 
-        demandPerCapita = {}
+    #     IDs = allowedIDs if allowedIDs != None else self.history[historyType]
+    #     for ID in IDs:
 
-        for ID in allowedIDs:
+    #         totalNumber = [number1[ID][i]+number2[ID][i]+number3[ID][i]+number4[ID][i]+number5[ID][i] for i in range(len(number1[ID]))]
+    #         demandPerCapita[ID] = []
 
-            totalNumber = [number1[ID][i]+number2[ID][i]+number3[ID][i]+number4[ID][i]+number5[ID][i] for i in range(len(number1[ID]))]
-            demandPerCapita[ID] = []
+    #         for i in range(len(number1[ID])):
+    #             totalNumber = number1[ID][i]+number2[ID][i]+number3[ID][i]+number4[ID][i]+number5[ID][i]
+    #             try:
+    #                 demandPerCapita[ID].append(demandValue[ID][i]/totalNumber)
+    #             except:
+    #                 demandPerCapita[ID].append(0)
+    #     return demandPerCapita
 
-            for i in range(len(number1[ID])):
-                totalNumber = number1[ID][i]+number2[ID][i]+number3[ID][i]+number4[ID][i]+number5[ID][i]
-                try:
-                    demandPerCapita[ID].append(demandValue[ID][i]/totalNumber)
-                except:
-                    demandPerCapita[ID].append(0)
-        return demandPerCapita
+    # def supplyPerCapita(self, historyType, allowedIDs= None, num = 0) -> dict:
+        
+    #     number1 = self.row1(decNum, num, allowedIDs)['SupplyNumber1']
+    #     number2 = self.row2(decNum, num, allowedIDs)['SupplyNumber2']
+    #     number3 = self.row3(decNum, num, allowedIDs)['SupplyNumber3']
+    #     number4 = self.row4(decNum, num, allowedIDs)['SupplyNumber4']
+    #     number5 = self.row5(decNum, num, allowedIDs)['SupplyNumber5']
 
-    def supplyPerCapita(self, decNum = 1, num = 0, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
+    #     supplyValue = self.supplyValue(decNum, num, allowedIDs)
 
-        number1 = self.row1(decNum, num, allowedIDs)[onlineColumns.SupplyNumber1.value]
-        number2 = self.row2(decNum, num, allowedIDs)[onlineColumns.SupplyNumber2.value]
-        number3 = self.row3(decNum, num, allowedIDs)[onlineColumns.SupplyNumber3.value]
-        number4 = self.row4(decNum, num, allowedIDs)[onlineColumns.SupplyNumber4.value]
-        number5 = self.row5(decNum, num, allowedIDs)[onlineColumns.SupplyNumber5.value]
+    #     supplyPerCapita = {}
 
-        supplyValue = self.supplyValue(decNum, num, allowedIDs)
+    #     IDs = allowedIDs if allowedIDs != None else self.history[historyType]
+    #     for ID in IDs:
 
-        supplyPerCapita = {}
+    #         totalNumber = [number1[ID][i]+number2[ID][i]+number3[ID][i]+number4[ID][i]+number5[ID][i] for i in range(len(number1[ID]))]
+    #         supplyPerCapita[ID] = []
 
-        for ID in allowedIDs:
+    #         for i in range(len(number1[ID])):
+    #             totalNumber = number1[ID][i]+number2[ID][i]+number3[ID][i]+number4[ID][i]+number5[ID][i]
+    #             try:
+    #                 supplyPerCapita[ID].append(supplyValue[ID][i]/totalNumber)
+    #             except:
+    #                 supplyPerCapita[ID].append(0)
+    #     return supplyPerCapita
 
-            totalNumber = [number1[ID][i]+number2[ID][i]+number3[ID][i]+number4[ID][i]+number5[ID][i] for i in range(len(number1[ID]))]
-            supplyPerCapita[ID] = []
+    # # Diff
+    # def volumeDif(self, historyType, num = 0, length = 1, allowedIDs) -> dict:
+        
+    #     if num == 0:
+    #         requieredLength = 0
+    #     else:
+    #         requieredLength = num+length
 
-            for i in range(len(number1[ID])):
-                totalNumber = number1[ID][i]+number2[ID][i]+number3[ID][i]+number4[ID][i]+number5[ID][i]
-                try:
-                    supplyPerCapita[ID].append(supplyValue[ID][i]/totalNumber)
-                except:
-                    supplyPerCapita[ID].append(0)
-        return supplyPerCapita
+    #     volume = self.volume(decNum, requieredLength, allowedIDs)
+    #     volumeDif = {}
 
-    # Diff
-    def volumeDif(self, decNum = 1, num = 0, length = 1, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        if num == 0:
-            requieredLength = 0
-        else:
-            requieredLength = num+length
+    #     IDs = allowedIDs if allowedIDs != None else self.history[historyType]
+    #     for ID in IDs:
+    #         volumeDif[ID] = []
+    #         for i in range(-1, -len(volume[ID])-1, -1):
+    #             if abs(i) + length <= len(volume[ID]):   
+    #                 thisVolumeDif = max(volume[ID][i]-volume[ID][i-length], 0)
+    #             else:
+    #                 thisVolumeDif = max(volume[ID][i], 0)
+    #             volumeDif[ID].append(thisVolumeDif)
+    #         if num == 0:
+    #             volumeDif[ID] = volumeDif[ID][::-1]
+    #         else:
+    #             volumeDif[ID] = volumeDif[ID][::-1][-num:]
 
-        volume = self.volume(decNum, requieredLength, allowedIDs)
-        volumeDif = {}
+    #     return volumeDif
 
-        for ID in allowedIDs:
-            volumeDif[ID] = []
-            for i in range(-1, -len(volume[ID])-1, -1):
-                if abs(i) + length <= len(volume[ID]):   
-                    thisVolumeDif = max(volume[ID][i]-volume[ID][i-length], 0)
-                else:
-                    thisVolumeDif = max(volume[ID][i], 0)
-                volumeDif[ID].append(thisVolumeDif)
-            if num == 0:
-                volumeDif[ID] = volumeDif[ID][::-1]
-            else:
-                volumeDif[ID] = volumeDif[ID][::-1][-num:]
+    # def clientVolumeDif(self, historyType, num = 0, length = 1, allowedIDs) -> dict:
+        
+    #     if num == 0:
+    #         requieredLength = 0
+    #     else:
+    #         requieredLength = num+length
 
-        return volumeDif
+    #     realValues = self.realValues(decNum, requieredLength, allowedIDs)
+    #     realBuyVolume = realValues['RealBuyVolume']
+    #     corporateValues = self.corporateValues(decNum, requieredLength, allowedIDs)
+    #     corporateBuyVolume = corporateValues['CorporateBuyVolume']
+    #     clientVolumeDif = {}
 
-    def clientVolumeDif(self, decNum = 1, num = 0, length = 1, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        if num == 0:
-            requieredLength = 0
-        else:
-            requieredLength = num+length
+    #     IDs = allowedIDs if allowedIDs != None else self.history[historyType]
+    #     for ID in IDs:
+    #         clientVolumeDif[ID] = []
+    #         for i in range(-1, -len(realBuyVolume[ID])-1, -1):
+    #             if abs(i) + length <= len(realBuyVolume[ID]):   
+    #                 thisVolumeDif = max((realBuyVolume[ID][i]+corporateBuyVolume[ID][i])-(realBuyVolume[ID][i-length]+corporateBuyVolume[ID][i-length]), 0)
+    #             else:
+    #                 thisVolumeDif = max(realBuyVolume[ID][i]+corporateBuyVolume[ID][i], 0)
+    #             clientVolumeDif[ID].append(thisVolumeDif)
+    #         if num == 0:
+    #             clientVolumeDif[ID] = clientVolumeDif[ID][::-1]
+    #         else:
+    #             clientVolumeDif[ID] = clientVolumeDif[ID][::-1][-num:]
 
-        realValues = self.realValues(decNum, requieredLength, allowedIDs)
-        realBuyVolume = realValues[onlineColumns.RealBuyVolume.value]
-        corporateValues = self.corporateValues(decNum, requieredLength, allowedIDs)
-        corporateBuyVolume = corporateValues[onlineColumns.CorporateBuyVolume.value]
-        clientVolumeDif = {}
+    #     return clientVolumeDif
 
-        for ID in allowedIDs:
-            clientVolumeDif[ID] = []
-            for i in range(-1, -len(realBuyVolume[ID])-1, -1):
-                if abs(i) + length <= len(realBuyVolume[ID]):   
-                    thisVolumeDif = max((realBuyVolume[ID][i]+corporateBuyVolume[ID][i])-(realBuyVolume[ID][i-length]+corporateBuyVolume[ID][i-length]), 0)
-                else:
-                    thisVolumeDif = max(realBuyVolume[ID][i]+corporateBuyVolume[ID][i], 0)
-                clientVolumeDif[ID].append(thisVolumeDif)
-            if num == 0:
-                clientVolumeDif[ID] = clientVolumeDif[ID][::-1]
-            else:
-                clientVolumeDif[ID] = clientVolumeDif[ID][::-1][-num:]
+    # def realPowerDif(self, historyType, num = 0, length = 1, allowedIDs) -> dict:
+        
+    #     if num == 0:
+    #         requieredLength = 0
+    #     else:
+    #         requieredLength = num+length
 
-        return clientVolumeDif
+    #     realValues = self.realValues(decNum, requieredLength, allowedIDs)
+    #     realBuyVolume = realValues['RealBuyVolume']
+    #     realBuyNumber = realValues['RealBuyNumber']
+    #     realSellVolume = realValues['RealSellVolume']
+    #     realSellNumber = realValues['RealSellNumber']
+    #     realPowerDif ={}
 
-    def realPowerDif(self, decNum = 1, num = 0, length = 1, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        if num == 0:
-            requieredLength = 0
-        else:
-            requieredLength = num+length
+    #     IDs = allowedIDs if allowedIDs != None else self.history[historyType]
+    #     for ID in IDs:
+    #         realPowerDif[ID] = []
+    #         for i in range(-1, -len(realBuyVolume[ID])-1, -1):
+    #             try:
+    #                 if abs(i) + length <= len(realBuyVolume[ID]):   
+    #                     thisRealPowerDif = ((realBuyVolume[ID][i]-realBuyVolume[ID][i-length])/(realBuyNumber[ID][i]-realBuyNumber[ID][i-length]))/\
+    #                     ((realSellVolume[ID][i]-realSellVolume[ID][i-length])/(realSellNumber[ID][i]-realSellNumber[ID][i-length]))
+    #                 else:
+    #                     thisRealPowerDif = (realBuyVolume[ID][i]/realBuyNumber[ID][i])/(realSellVolume[ID][i]/realSellNumber[ID][i])
+    #             except:
+    #                 thisRealPowerDif = 1
+    #             if thisRealPowerDif <= 0:
+    #                 thisRealPowerDif = 1
+    #             realPowerDif[ID].append(thisRealPowerDif)
+    #         if num == 0:
+    #             realPowerDif[ID] = realPowerDif[ID][::-1]
+    #         else:
+    #             realPowerDif[ID] = realPowerDif[ID][::-1][-num:]
 
-        realValues = self.realValues(decNum, requieredLength, allowedIDs)
-        realBuyVolume = realValues[onlineColumns.RealBuyVolume.value]
-        realBuyNumber = realValues[onlineColumns.RealBuyNumber.value]
-        realSellVolume = realValues[onlineColumns.RealSellVolume.value]
-        realSellNumber = realValues[onlineColumns.RealSellNumber.value]
-        realPowerDif ={}
+    #     return realPowerDif
 
-        for ID in allowedIDs:
-            realPowerDif[ID] = []
-            for i in range(-1, -len(realBuyVolume[ID])-1, -1):
-                try:
-                    if abs(i) + length <= len(realBuyVolume[ID]):   
-                        thisRealPowerDif = ((realBuyVolume[ID][i]-realBuyVolume[ID][i-length])/(realBuyNumber[ID][i]-realBuyNumber[ID][i-length]))/\
-                        ((realSellVolume[ID][i]-realSellVolume[ID][i-length])/(realSellNumber[ID][i]-realSellNumber[ID][i-length]))
-                    else:
-                        thisRealPowerDif = (realBuyVolume[ID][i]/realBuyNumber[ID][i])/(realSellVolume[ID][i]/realSellNumber[ID][i])
-                except:
-                    thisRealPowerDif = 1
-                if thisRealPowerDif <= 0:
-                    thisRealPowerDif = 1
-                realPowerDif[ID].append(thisRealPowerDif)
-            if num == 0:
-                realPowerDif[ID] = realPowerDif[ID][::-1]
-            else:
-                realPowerDif[ID] = realPowerDif[ID][::-1][-num:]
+    # def rpvp(self, historyType, num = 0, length = 1, allowedIDs) -> dict:
+        
 
-        return realPowerDif
+    #     VolumeDif = self.clientVolumeDif(decNum, num, length, allowedIDs)
+    #     RealPowerDif = self.realPowerDif(decNum, num, length, allowedIDs)
 
-    def rpvp(self, decNum = 1, num = 0, length = 1, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
+    #     IDs = allowedIDs if allowedIDs != None else self.history[historyType]
+    #     return {ID: [VolumeDif[ID][i]*log10(RealPowerDif[ID][i]) for i in range(len(VolumeDif[ID]))] for ID in IDs}
 
-        VolumeDif = self.clientVolumeDif(decNum, num, length, allowedIDs)
-        RealPowerDif = self.realPowerDif(decNum, num, length, allowedIDs)
+    # def perCapitaBuyDif(self, historyType, num = 0, length = 1, allowedIDs) -> dict:
+        
+    #     if num == 0:
+    #         requieredLength = 0
+    #     else:
+    #         requieredLength = num+length
 
-        return {ID: [VolumeDif[ID][i]*log10(RealPowerDif[ID][i]) for i in range(len(VolumeDif[ID]))] for ID in allowedIDs}
+    #     lastPrice = self.lastPrice(decNum, requieredLength, allowedIDs)
+    #     realValues = self.realValues(decNum, requieredLength, allowedIDs)
+    #     realBuyVolume = realValues['RealBuyVolume']
+    #     realBuyNumber = realValues['RealBuyNumber']
+    #     perCapitaBuyDif = {}
 
-    def perCapitaBuyDif(self, decNum = 1, num = 0, length = 1, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        if num == 0:
-            requieredLength = 0
-        else:
-            requieredLength = num+length
+    #     IDs = allowedIDs if allowedIDs != None else self.history[historyType]
+    #     for ID in IDs:
+    #         perCapitaBuyDif[ID] = []
+    #         for i in range(-1, -len(realBuyVolume[ID])-1, -1):
+    #             try:
+    #                 if abs(i) + length <= len(realBuyVolume[ID]):   
+    #                     thisPerCapitaBuyDif = max(int((realBuyVolume[ID][i]-realBuyVolume[ID][i-length])/(realBuyNumber[ID][i]-realBuyNumber[ID][i-length]) * lastPrice[ID][i] / 10**7), 0)
+    #                 else:
+    #                     thisPerCapitaBuyDif = max(int((realBuyVolume[ID][i]/realBuyNumber[ID][i]) * lastPrice[ID][i] / 10**7), 0)
+    #             except:
+    #                 thisPerCapitaBuyDif = 0
+    #             perCapitaBuyDif[ID].append(thisPerCapitaBuyDif)
+    #         if num == 0:
+    #             perCapitaBuyDif[ID] = perCapitaBuyDif[ID][::-1]
+    #         else:
+    #             perCapitaBuyDif[ID] = perCapitaBuyDif[ID][::-1][-num:]
 
-        lastPrice = self.lastPrice(decNum, requieredLength, allowedIDs)
-        realValues = self.realValues(decNum, requieredLength, allowedIDs)
-        realBuyVolume = realValues[onlineColumns.RealBuyVolume.value]
-        realBuyNumber = realValues[onlineColumns.RealBuyNumber.value]
-        perCapitaBuyDif = {}
+    #     return perCapitaBuyDif
 
-        for ID in allowedIDs:
-            perCapitaBuyDif[ID] = []
-            for i in range(-1, -len(realBuyVolume[ID])-1, -1):
-                try:
-                    if abs(i) + length <= len(realBuyVolume[ID]):   
-                        thisPerCapitaBuyDif = max(int((realBuyVolume[ID][i]-realBuyVolume[ID][i-length])/(realBuyNumber[ID][i]-realBuyNumber[ID][i-length]) * lastPrice[ID][i] / 10**7), 0)
-                    else:
-                        thisPerCapitaBuyDif = max(int((realBuyVolume[ID][i]/realBuyNumber[ID][i]) * lastPrice[ID][i] / 10**7), 0)
-                except:
-                    thisPerCapitaBuyDif = 0
-                perCapitaBuyDif[ID].append(thisPerCapitaBuyDif)
-            if num == 0:
-                perCapitaBuyDif[ID] = perCapitaBuyDif[ID][::-1]
-            else:
-                perCapitaBuyDif[ID] = perCapitaBuyDif[ID][::-1][-num:]
+    # def perCapitaSellDif(self, historyType, num = 0, length = 1, allowedIDs) -> dict:
+        
+    #     if num == 0:
+    #         requieredLength = 0
+    #     else:
+    #         requieredLength = num+length
 
-        return perCapitaBuyDif
+    #     lastPrice = self.lastPrice(decNum, requieredLength, allowedIDs)
+    #     realValues = self.realValues(decNum, requieredLength, allowedIDs)
+    #     realSellVolume = realValues['RealSellVolume']
+    #     realSellNumber = realValues['RealSellNumber']
+    #     perCapitaSellDif = {}
 
-    def perCapitaSellDif(self, decNum = 1, num = 0, length = 1, allowedIDs: list= None) -> dict:
-        allowedIDs = self.check_allowedIDs(allowedIDs)
-        if num == 0:
-            requieredLength = 0
-        else:
-            requieredLength = num+length
+    #     IDs = allowedIDs if allowedIDs != None else self.history[historyType]
+    #     for ID in IDs:
+    #         perCapitaSellDif[ID] = []
+    #         for i in range(-1, -len(realSellVolume[ID])-1, -1):
+    #             try:
+    #                 if abs(i) + length <= len(realSellVolume[ID]):   
+    #                     thisPerCapitaSellDif = max(int((realSellVolume[ID][i]-realSellVolume[ID][i-length])/(realSellNumber[ID][i]-realSellNumber[ID][i-length]) * lastPrice[ID][i] / 10**7), 0)
+    #                 else:
+    #                     thisPerCapitaSellDif = max(int((realSellVolume[ID][i]/realSellNumber[ID][i]) * lastPrice[ID][i] / 10**7), 0)
+    #             except:
+    #                 thisPerCapitaSellDif = 0
+    #             perCapitaSellDif[ID].append(thisPerCapitaSellDif)
+    #         if num == 0:
+    #             perCapitaSellDif[ID] = perCapitaSellDif[ID][::-1]
+    #         else:
+    #             perCapitaSellDif[ID] = perCapitaSellDif[ID][::-1][-num:]
 
-        lastPrice = self.lastPrice(decNum, requieredLength, allowedIDs)
-        realValues = self.realValues(decNum, requieredLength, allowedIDs)
-        realSellVolume = realValues[onlineColumns.RealSellVolume.value]
-        realSellNumber = realValues[onlineColumns.RealSellNumber.value]
-        perCapitaSellDif = {}
-
-        for ID in allowedIDs:
-            perCapitaSellDif[ID] = []
-            for i in range(-1, -len(realSellVolume[ID])-1, -1):
-                try:
-                    if abs(i) + length <= len(realSellVolume[ID]):   
-                        thisPerCapitaSellDif = max(int((realSellVolume[ID][i]-realSellVolume[ID][i-length])/(realSellNumber[ID][i]-realSellNumber[ID][i-length]) * lastPrice[ID][i] / 10**7), 0)
-                    else:
-                        thisPerCapitaSellDif = max(int((realSellVolume[ID][i]/realSellNumber[ID][i]) * lastPrice[ID][i] / 10**7), 0)
-                except:
-                    thisPerCapitaSellDif = 0
-                perCapitaSellDif[ID].append(thisPerCapitaSellDif)
-            if num == 0:
-                perCapitaSellDif[ID] = perCapitaSellDif[ID][::-1]
-            else:
-                perCapitaSellDif[ID] = perCapitaSellDif[ID][::-1][-num:]
-
-        return perCapitaSellDif
+    #     return perCapitaSellDif

@@ -115,7 +115,7 @@ class onlineData_repo(dbContext):
 
 
 
-    def read_distint_times_of_day(self, date: str) -> list:
+    def read_distinct_times_of_day(self, date: str) -> list:
         '''returns distint times of day in string type'''
         self.connect()
         self.execute(f"""select distinct Time from {tableType.OnlineData.value}

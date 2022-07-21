@@ -16,7 +16,7 @@ length = int(30/decNum*15/period)
 
 groups = [marketGroupType.TotalMarket.value] #, marketGroupType.Khodroei, marketGroupType.Daroei
 
-distinctTimes = onlineData_repo().read_distint_times_of_day(jalali_to_gregorian(date))
+distinctTimes = onlineData_repo().read_distinct_times_of_day(jalali_to_gregorian(date))
 marketWatchGen = marketWatchDataGenerator()
 marketWatchHand = marketWatchDataHandler(groups, None)
 risingMode = False

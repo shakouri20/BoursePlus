@@ -9,7 +9,7 @@
 # 1461=(365*4)+(4/4)   &   146097=(365*400)+(400/4)-(400/100)+(400/400)
 
 
-def gregorian_to_jalali(date):
+def gregorian_to_jalali(date, splitter='-'):
  gy = int(date[:4])
  gm = int(date[5:7])
  gd = int(date[8:])
@@ -32,10 +32,10 @@ def gregorian_to_jalali(date):
  else:
   jm = 7 + ((days - 186) // 30)
   jd = 1 + ((days - 186) % 30)
- return "%04d" % (jy,) + '-' + "%02d" % (jm,) + '-' + "%02d" % (jd,)
+ return "%04d" % (jy,) + splitter + "%02d" % (jm,) + splitter + "%02d" % (jd,)
 
 
-def jalali_to_gregorian(date):
+def jalali_to_gregorian(date, splitter='-'):
  jy = int(date[:4])
  jm = int(date[5:7])
  jd = int(date[8:])
@@ -68,4 +68,4 @@ def jalali_to_gregorian(date):
  while (gm < 13 and gd > sal_a[gm]):
   gd -= sal_a[gm]
   gm += 1
- return "%04d" % (gy,) + '-' + "%02d" % (gm,) + '-' + "%02d" % (gd,)
+ return "%04d" % (gy,) + splitter + "%02d" % (gm,) + splitter + "%02d" % (gd,)

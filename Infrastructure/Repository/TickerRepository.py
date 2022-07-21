@@ -362,7 +362,6 @@ class ticker_repo(dbContext):
 
     def delete_empty_tickers(self):
 
-
         # ID generator
         IDs = ticker_repo().read_list_of_tickers()['ID']
 

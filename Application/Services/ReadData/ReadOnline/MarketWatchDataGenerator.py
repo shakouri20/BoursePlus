@@ -68,13 +68,11 @@ class marketWatchDataGenerator():
 
         return marketWatchDict
     
-
 class marketWatchGroup():
 
     def __init__(self, IDList: list) -> None:
         self.IDList = IDList
         self.isTodayFlag = {}
-
 
     def reset_values(self) -> None:
 
@@ -99,7 +97,6 @@ class marketWatchGroup():
 
     def decimal_cut(self, a) -> float:
         return float('%.2f'%a)
-
 
     def calc_parameters(self, data: dict, ID: int) -> None:
         
@@ -147,9 +144,8 @@ class marketWatchGroup():
                 except:
                     pass
 
-                self.lastPricePRCsSum += lastPricePRC / maxAllowedPRC if lastPricePRC >= 0 else -lastPricePRC / minAllowedPRC
-                self.todayPricePECsSum += todayPricePRC / maxAllowedPRC if todayPricePRC >= 0 else -todayPricePRC / minAllowedPRC
-
+                self.lastPricePRCsSum += lastPricePRC #/ maxAllowedPRC if lastPricePRC >= 0 else -lastPricePRC / minAllowedPRC
+                self.todayPricePECsSum += todayPricePRC #/ maxAllowedPRC if todayPricePRC >= 0 else -todayPricePRC / minAllowedPRC
 
                 self.totalValue += data[ID][onlineColumns.LastPrice.value] * data[ID][onlineColumns.Volume.value]
 

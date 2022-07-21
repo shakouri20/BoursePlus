@@ -35,8 +35,9 @@ ticker1 = '56-سرمايه گذاريها6'
 ticker1 = '40-تامين آب،برق،گ6'
 ticker1 = '72-رايانه6'
 ticker1 = '49-کاشي و سراميک6'
+ticker1 = '67-اداره بازارمال6'
 
-ticker1 = '49-کاشي و سراميک6'
+ticker1 = '67-اداره بازارمال6'
 ticker2 = 'شاخص کل (هم وزن)6'
 
 tickersData = tickerCompare(ticker1, ticker2, fromDate, toDate)

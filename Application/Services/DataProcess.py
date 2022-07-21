@@ -199,7 +199,7 @@ def backTest_data_process(date: str, strategiesDataPipes, strategiesDataChildPip
     # write_mock_offline_data(jalali_to_gregorian(date), 45) 
     print('Done!')
 
-    distinctTimes = onlineData_repo().read_distint_times_of_day(jalali_to_gregorian(date))
+    distinctTimes = onlineData_repo().read_distinct_times_of_day(jalali_to_gregorian(date))
 
     marketWatchGen = marketWatchDataGenerator()
     db = onlineData_repo()

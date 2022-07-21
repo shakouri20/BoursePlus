@@ -151,6 +151,7 @@ def get_marketWatch_data_tse_method(init= 0, heven= 0, refid= 0) -> dict:
     MinPrice1 = 11
     MaxPrice1 = 12
     YesterdayPrice1 = 13
+    BaseVolume = 15
     MaxAllowedPrice1 = 19
     MinAllowedPrice1 = 20
     ShareNumber1 = 21
@@ -185,6 +186,7 @@ def get_marketWatch_data_tse_method(init= 0, heven= 0, refid= 0) -> dict:
             marketWatchDict[thisID]['Variable']['MinPrice'] = int(thisLine[MinPrice1])
             marketWatchDict[thisID]['Variable']['MaxPrice'] = int(thisLine[MaxPrice1])
             marketWatchDict[thisID]['Constant']['YesterdayPrice'] = int(thisLine[YesterdayPrice1])
+            marketWatchDict[thisID]['Constant']['BaseVolume'] = int(thisLine[BaseVolume])
             marketWatchDict[thisID]['Constant']['MaxAllowedPrice'] = int(float(thisLine[MaxAllowedPrice1]))
             marketWatchDict[thisID]['Constant']['MinAllowedPrice'] = int(float(thisLine[MinAllowedPrice1]))
             marketWatchDict[thisID]['Constant']['ShareNumber'] = int(thisLine[ShareNumber1])
@@ -205,15 +207,16 @@ def get_marketWatch_data_tse_method(init= 0, heven= 0, refid= 0) -> dict:
             heven = max(heven, int(thisLine[heven2]))
 
     for thisLine in ordersBoardData:
-        thisID = int(thisLine[ID])
-        if thisID not in marketWatchDict:
-            marketWatchDict[thisID] = {'Constant': {}, 'Variable': {}, 'OrdersBoard': {}}
-        marketWatchDict[thisID]['OrdersBoard'][f'SupplyNumber{int(thisLine[Row])}'] = int(thisLine[SupplyNumber])
-        marketWatchDict[thisID]['OrdersBoard'][f'DemandNumber{int(thisLine[Row])}'] = int(thisLine[DemandNumber])
-        marketWatchDict[thisID]['OrdersBoard'][f'DemandPrice{int(thisLine[Row])}'] = int(thisLine[DemandPrice])
-        marketWatchDict[thisID]['OrdersBoard'][f'SupplyPrice{int(thisLine[Row])}'] = int(thisLine[SupplyPrice])
-        marketWatchDict[thisID]['OrdersBoard'][f'DemandVolume{int(thisLine[Row])}'] = int(thisLine[DemandVolume])
-        marketWatchDict[thisID]['OrdersBoard'][f'SupplyVolume{int(thisLine[Row])}'] = int(thisLine[SupplyVolume])
+        if (len(thisLine) == OrdersLineLength):
+            thisID = int(thisLine[ID])
+            if thisID not in marketWatchDict:
+                marketWatchDict[thisID] = {'Constant': {}, 'Variable': {}, 'OrdersBoard': {}}
+            marketWatchDict[thisID]['OrdersBoard'][f'SupplyNumber{int(thisLine[Row])}'] = int(thisLine[SupplyNumber])
+            marketWatchDict[thisID]['OrdersBoard'][f'DemandNumber{int(thisLine[Row])}'] = int(thisLine[DemandNumber])
+            marketWatchDict[thisID]['OrdersBoard'][f'DemandPrice{int(thisLine[Row])}'] = int(thisLine[DemandPrice])
+            marketWatchDict[thisID]['OrdersBoard'][f'SupplyPrice{int(thisLine[Row])}'] = int(thisLine[SupplyPrice])
+            marketWatchDict[thisID]['OrdersBoard'][f'DemandVolume{int(thisLine[Row])}'] = int(thisLine[DemandVolume])
+            marketWatchDict[thisID]['OrdersBoard'][f'SupplyVolume{int(thisLine[Row])}'] = int(thisLine[SupplyVolume])
 
     return {'Data': marketWatchDict, 'Heven': heven, 'Refid': refid}
 

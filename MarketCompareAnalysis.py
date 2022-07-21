@@ -16,7 +16,7 @@ import copy
 fromDate = '1400-10-01'
 toDate = '1402-07-01'
 
-ichimokoAnalysis = 1
+ichimokoAnalysis = 0
 
 hIndexData = offlineData_repo().read_by_ID_and_time('Time', 'ClosePrice', 'OpenPrice', 'HighPrice', 'LowPrice', ID= 67130298613737946, fromDate= fromDate, toDate= toDate, outputDateType= dateType.gregorian)
 hDatesG = hIndexData['Time']

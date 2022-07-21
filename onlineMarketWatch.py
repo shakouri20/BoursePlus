@@ -47,7 +47,6 @@ while True:
         realPowerDif = marketWatchHand.realPowerDif(length = 2)[groups[0]]
         valueDif = marketWatchHand.totalValueDif(length = 2)[groups[0]]
 
-        lastPrices = [lastPrice/20 for lastPrice in lastPrices]
         slope = [0 for _ in range(len(times))]
         for i in range(5, len(times)):
             slope[i] = lastPrices[i] - lastPrices[max(i-5, 0)] # 15
@@ -61,6 +60,10 @@ while True:
         ap.ax[2].clear()
         ap.ax[3].clear()
         ap.ax[0].plot(times, lastPrices)
+        today = datetime.datetime.now().date()
+        startLim = datetime.datetime(today.year, today.month, today.day, 9, 0)
+        stopLim = datetime.datetime(today.year, today.month, today.day, 12, 30)
+        ap.ax[0].set_xlim([startLim, stopLim])
         ap.ax[0].plot(times, lastPricesMa)
         ap.ax[0].set_ylabel('Index')
         ap.ax[1].plot(times, slope)

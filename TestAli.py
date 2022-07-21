@@ -1,60 +1,73 @@
-# import threading, time
 
-# x = 1
-# def a():
-#     threading.Timer(5, a).start()
-#     global x
-#     x += 1
-#     print('a', x)
-
-# def b():
-#     threading.Timer(3, b).start()
-#     global x
-#     x += 2
-#     print('b', x)
-
-# a()
-# b()
-
-# import threading
-# import time
-  
-# def print_cube(num):
-#     """
-#     function to print cube of given num
-#     """
-#     print("Cube: {}".format(num * num * num))
-#     time.sleep(3)
-#     print('End1')
-  
-# def print_square(num):
-#     """
-#     function to print square of given num
-#     """
-#     print("Square: {}".format(num * num))
-#     time.sleep(6)
-#     print('End2')
-  
-  
-# if __name__ == "__main__":
-#     # creating thread
-#     t1 = threading.Thread(target=print_square, args=(10,))
-#     t2 = threading.Thread(target=print_cube, args=(10,))
-  
-#     # starting thread 1
-#     t1.start()
-#     # starting thread 2
-#     t2.start()
-  
-#     print('Running')
-#     # wait until thread 1 is completely executed
-#     t1.join()
-#     print('t1 joined')
-#     # wait until thread 2 is completely executed
-#     t2.join()
-#     print('t2 joined')
-  
-#     # both threads completely executed
-#     print("Done!")
+from cmath import nan
+import datetime
+import threading
+import time
 from matplotlib import pyplot as plt
-import requests, json, time
+
+import numpy as np
+from Application.Services.WriteData.GetOnlineDataService import get_last_clientType_Data, get_marketWatch_data_tse_method
+from Application.Utility.AdvancedPlot import advancedPlot
+from Infrastructure.Repository.OfflineDataRepository import offlineData_repo
+from TelegramProject.TelegramBot import *
+import timeit, os, sys
+
+from TelegramProject.main import print_error
+
+
+# output = get_marketWatch_data_tse_method(init= 1)
+# output = get_marketWatch_data_tse_method(heven= 100000, refid= 10434169200)
+# output = get_marketWatch_data_tse_method(heven= output['Heven'], refid= output['Refid'])
+
+
+# while True:
+
+# try:
+#     ctData = get_last_clientType_Data()
+
+#     print(ctData[31049085025064185]['RealBuyNumber'], ctData[31049085025064185]['RealSellNumber'])
+
+# except:
+#     print('Error')
+
+# class testClass:
+
+#     def __init__(self) -> None:
+#         print('\ntestClass inited')
+
+#     def __del__(self):
+#         print("deleted")
+
+#     def Hello(self):
+#         print('waiting...')
+#         time.sleep(10)
+#         print('start')
+#         self.a = []
+#         for i in range(3000000):
+#             # print(' ', i, end= '\r')
+#             self.a.append(i)
+#         print('end')
+
+
+
+# testObj = testClass()
+# testObj.Hello()
+
+
+# time.sleep(10)
+
+
+# testObj = testClass()
+# testObj.Hello()
+
+# input()
+
+# testObj.a = []
+
+# input()
+
+num_threads = threading.active_count()
+
+print(num_threads)
+
+

@@ -10,7 +10,7 @@ import json
 
 date = '1400-07-11'
 print(date)
-distinctTimes = onlineData_repo().read_distint_times_of_day(jalali_to_gregorian(date))
+distinctTimes = onlineData_repo().read_distinct_times_of_day(jalali_to_gregorian(date))
 IDs = ticker_repo().read_list_of_tickers(tickerTypes= [1])["ID"]
 # IDs = [70219663893822560]
 volumeAvg = read_offline_services.average.get_averge_volume(IDs, 30)

@@ -16,7 +16,7 @@ import requests, time
 fromDate = '1400-11-01'
 toDate = '1402-07-01'
 
-ichimokoAnalysis = 0
+ichimokoAnalysis = 1
 
 # 32097828799138957 شاخص کل
 # 67130298613737946 شاخص هم وزن

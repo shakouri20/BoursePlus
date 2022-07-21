@@ -148,7 +148,6 @@ class onlineTradeUI:
 
         for ID in data:
 
-            
             volumes = [data[ID]['Value'][i]/data[ID]['TodayPrice'][i] for i in range(len(data[ID]['Value']))]
             monthlyVolume = sum(volumes)/len(volumes)
             weeklyVolume = sum(volumes[-7:])/len(volumes[-7:])
