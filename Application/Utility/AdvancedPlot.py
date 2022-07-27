@@ -34,14 +34,12 @@ class advancedPlot:
             plt.show(block=False)
             plt.pause(0.1)
             plt.close()
-            self.fig.savefig('foo.png')
+            self.fig.savefig('telegram.jpg', dpi=200)
         else:
             plt.show()
 
-
     def save_fig(self, name):
         self.fig.savefig(name)
-
 
     def on_click(self, event):
         if event.inaxes:

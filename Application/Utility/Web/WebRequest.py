@@ -11,7 +11,6 @@ def getCsvData(url: str, splitters: list[str]= [';', ',']) -> list:
         except:
             pass
     else:
-        print('Web Error')
         return
     
     text: str = response.text

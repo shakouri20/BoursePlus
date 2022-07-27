@@ -60,5 +60,5 @@ for i in range(15, len(data.index)):
     #         print(data.time[i], 'down 2')
     #         continue
 
-ap.run()
+ap.run(True)
 

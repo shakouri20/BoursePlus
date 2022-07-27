@@ -5,7 +5,7 @@ from Application.Services.OfflineLab.M_SellMiddlewares import *
 from Application.Services.OfflineLab.D_BuyMiddlewares import *
 from Application.Services.OfflineLab.D_SellMiddlewares import *
 
-name = 'تکشا'
+name = 'خفنر'
 fromDate = '1400-10-01'
 toDate= '1401-12-30'
 
