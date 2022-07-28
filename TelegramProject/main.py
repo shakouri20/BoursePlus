@@ -222,9 +222,6 @@ class filterPlus:
 
     def telegram_assistant(self):
 
-        industry: tickersGroup = self.marketManager.groups['کل_بازار']
-        industry.HeavyDealsPrc
-
         try:
 
             data = get_updates(self.telegramLastUpdateID)['result']
