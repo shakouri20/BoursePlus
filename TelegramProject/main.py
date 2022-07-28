@@ -99,7 +99,7 @@ class filterPlus:
                 except:
                     print_error('Error in run_filters')
 
-            if self.startTime-10*60 < now < self.endTime:
+            if self.startTime-10*60 < now < self.endTime and nowObj.weekday() not in [3, 4]:
                 timer = threading.Timer(1, self.run)
             else:
                 timer = threading.Timer(30, self.run)
