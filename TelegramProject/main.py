@@ -190,7 +190,7 @@ class filterPlus:
             nowObj = datetime.datetime.now()
             now = nowObj.hour*3600 + nowObj.minute*60 + nowObj.second
 
-            if self.firstTime or 30900 < now < 31000: # 28800 (08:00) 29400 (08:10)  and nowObj.weekday() not in [3, 4]
+            if self.firstTime or 74280 < now < 74380: # 28800 (08:00) 29400 (08:10)  and nowObj.weekday() not in [3, 4]
 
                 with self.lock:
 
