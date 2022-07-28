@@ -442,24 +442,24 @@ class filterParent:
 
         msg = '📈 #' + self.main.tickersInfo[ID]['FarsiTicker'] + '  -  ' + self.main.tickersInfo[ID]['FarsiName'] +'\n\n' +\
             'آخرین قیمت / قیمت پایانی / اختلاف:\n' +\
-            str(tickerPresentData.LastPrice) + ' ' + lastPricePrcStr + '  <b>ااا</b>  ' + str(tickerPresentData.TodayPrice) + ' ' + todayPricePrcStr + '  <b>ااا</b>  ' + lastPriceDifStr + '\n\n'+\
+            str(tickerPresentData.LastPrice) + ' ' + lastPricePrcStr + '  <b>ا</b>  ' + str(tickerPresentData.TodayPrice) + ' ' + todayPricePrcStr + '  <b>ا</b>  ' + lastPriceDifStr + '\n\n'+\
             'فاصله از سقف روز / سقف 8 روز / کف 8 روز:\n' +\
-            str(dayMaxPriceDif) + '  <b>ااا</b>  ' + str(pastMaxPriceDif) + '  <b>ااا</b>  ' + str(pastMinPriceDif) + '\n\n' +\
+            str(dayMaxPriceDif) + '  <b>ا</b>  ' + str(pastMaxPriceDif) + '  <b>ا</b>  ' + str(pastMinPriceDif) + '\n\n' +\
             queueStatus +\
             'ارزش معاملات (پول حقیقی):\n' +\
-            str(value) + ' ' + realMoneyStr + '  <b>ااا</b>  ' + str(weekValue) + '% هفته  <b>ااا</b>  ' + str(monthValue) + '% ماه\n\n' +\
+            str(value) + ' ' + realMoneyStr + '  <b>ا</b>  ' + str(weekValue) + '% هفته  <b>ا</b>  ' + str(monthValue) + '% ماه\n\n' +\
             'قدرت خریدار / سرانه خریدار / سرانه فروشنده:\n' +\
-            realPowerStr + '  <b>ااا</b>  ' + bpStr + '  <b>ااا</b>  ' + spStr + '\n\n' + \
+            realPowerStr + '  <b>ا</b>  ' + bpStr + '  <b>ا</b>  ' + spStr + '\n\n' + \
             'خرید درشت / فروش درشت:\n' +\
-            '\U0001f7e2 ' + str(self.main.heavyTrades.tickersData[ID]['BuyNumber']) + ' بار  <b>ااا</b>  ' + \
+            '\U0001f7e2 ' + str(self.main.heavyTrades.tickersData[ID]['BuyNumber']) + ' بار  <b>ا</b>  ' + \
             str(int(self.main.heavyTrades.tickersData[ID]['BuyVolume']/tickerPresentData.RealBuyVolume*100)) + ' درصد' + '  ➖  ' +\
-            '🔴 ' + str(self.main.heavyTrades.tickersData[ID]['SellNumber']) + ' بار  <b>ااا</b>  ' + \
+            '🔴 ' + str(self.main.heavyTrades.tickersData[ID]['SellNumber']) + ' بار  <b>ا</b>  ' + \
             str(int(self.main.heavyTrades.tickersData[ID]['SellVolume']/tickerPresentData.RealSellVolume*100)) + ' درصد\n' +\
             'برآیند معاملات بزرگ:  ' + heavyDealsPrcStr + '\n\n'+\
             'ایچیموکو:\n' +\
-            'تنکانسن / کیجنسن:  ' + tenkansenDifStr + tenkansenReactionStr + '  <b>ااا</b>  ' + kijunsenDifStr + kijunsenReactionStr + '\n' +\
-            'اسپن۱ / اسپن۲:  ' + spanAshiftedDifStr + spanAshiftedReactionStr + '  <b>ااا</b>  ' + spanBshiftedDifStr + spanBshiftedReactionStr + '\n' +\
-            'کومو بلند۱ / ۲:  ' + tenkansenLongDifStr + tenkansenLongReactionStr + '  <b>ااا</b>  ' + kijunsenLongDifStr + kijunsenLongReactionStr + '\n\n'
+            'تنکانسن / کیجنسن:  ' + tenkansenDifStr + tenkansenReactionStr + '  <b>ا</b>  ' + kijunsenDifStr + kijunsenReactionStr + '\n' +\
+            'اسپن۱ / اسپن۲:  ' + spanAshiftedDifStr + spanAshiftedReactionStr + '  <b>ا</b>  ' + spanBshiftedDifStr + spanBshiftedReactionStr + '\n' +\
+            'کومو بلند۱ / ۲:  ' + tenkansenLongDifStr + tenkansenLongReactionStr + '  <b>ا</b>  ' + kijunsenLongDifStr + kijunsenLongReactionStr + '\n\n'
             
         return msg
 
