@@ -58,7 +58,7 @@ def write_offline_data_stock() -> None:
     print('\nStart Writing Every Stock File to Database...')
 
     # ID generator
-    IDs = ticker_repo().read_list_of_tickers(tickerTypes= [1, 3, 4])['ID'][:20]
+    IDs = ticker_repo().read_list_of_tickers(tickerTypes= [1, 3, 4])['ID']
     # IDs = [7395271748414592]
     offRepo = offlineData_repo()
     # # parallel write

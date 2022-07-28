@@ -190,7 +190,7 @@ class filterPlus:
             nowObj = datetime.datetime.now()
             now = nowObj.hour*3600 + nowObj.minute*60 + nowObj.second
 
-            if self.firstTime or 74280 < now < 74380: # 28800 (08:00) 29400 (08:10)  and nowObj.weekday() not in [3, 4]
+            if self.firstTime or 28800 < now < 29400 and nowObj.weekday() not in [3, 4]: # 28800 (08:00) 29400 (08:10) 
 
                 with self.lock:
 
@@ -210,7 +210,7 @@ class filterPlus:
                     self.heavyTrades: heavyTrades = heavyTrades(self)
                     self.marketManager: marketManager = marketManager(self)
 
-                    timer = threading.Timer(60, self.initialize_today_objects) # 15 min
+                    timer = threading.Timer(15*60, self.initialize_today_objects)
                     timer.start()
 
                     print('Today Objects initialized.')
@@ -366,12 +366,12 @@ class filterParent:
             realMoneyStr = '(' + str(-realMoney) + '-🔴)'
 
         if bp > 40:
-            bpStr = str(bp) + '\U0001f7e2(' + str(round(bp/tickerPastData.buyPercapitaAvg, 1)) + ' برابر)'
+            bpStr = str(bp) + ' (' + str(round(bp/tickerPastData.buyPercapitaAvg, 1)) + ' برابر)\U0001f7e2'
         else:
             bpStr = str(bp) + ' (' + str(round(bp/tickerPastData.buyPercapitaAvg, 1)) + ' برابر)'
 
         if sp > 40:
-            spStr = str(sp) + '🔴(' + str(round(sp/tickerPastData.sellPercapitaAvg, 1)) + ' برابر)'
+            spStr = str(sp) + ' (' + str(round(sp/tickerPastData.sellPercapitaAvg, 1)) + ' برابر)🔴'
         else:
             spStr = str(sp) + ' (' + str(round(sp/tickerPastData.sellPercapitaAvg, 1)) + ' برابر)'
 
@@ -464,9 +464,6 @@ class filterParent:
             'کومو بلند۱ / ۲:  ' + tenkansenLongDifStr + tenkansenLongReactionStr + '  <b>ا</b>  ' + kijunsenLongDifStr + kijunsenLongReactionStr + '\n\n'
             
         return msg
-
-    def create_image(self, ID):
-        pass
 
     def signal_in_telegram(self, telegramMessage, telegramID, ID, replyMessageID= None):
 
