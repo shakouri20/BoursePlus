@@ -107,7 +107,7 @@ class filterPlus:
             timer.start()
 
         except:
-            print_error('Error in run_filters')
+            print_error('Unusual Error in run_filters')
             timer = threading.Timer(1, self.run)
             timer.start()
 
@@ -135,7 +135,7 @@ class filterPlus:
                 timer = threading.Timer(30, self.update_history_10s)
                 timer.start()
         except:
-            print_error('Error in 10s')
+            print_error('Unusual Error in 10s')
             timer = threading.Timer(3, self.update_history_10s)
             timer.start()
 
@@ -157,7 +157,7 @@ class filterPlus:
                 timer = threading.Timer(30, self.update_history_1m)
                 timer.start()
         except:
-            print_error('Error in 1m')
+            print_error('Unusual Error in 1m')
             timer = threading.Timer(3, self.update_history_1m)
             timer.start()
 
@@ -179,7 +179,7 @@ class filterPlus:
                 timer = threading.Timer(30, self.run_market_filters)
                 timer.start()
         except:
-            print_error('Error in marketwatch')
+            print_error('Unusual Error in marketwatch')
             timer = threading.Timer(3, self.run_market_filters)
             timer.start()
 
@@ -220,7 +220,7 @@ class filterPlus:
                 timer.start()
 
         except:
-            print_error('Error in initialize_today_objects:')
+            print_error('Unusual Error in initialize_today_objects:')
             timer = threading.Timer(60, self.initialize_today_objects)
             timer.start()
 
@@ -237,20 +237,18 @@ class filterPlus:
                         try:
                             for ID in self.tickersInfo:
                                 if self.tickersInfo[ID]['FarsiTicker'] == item['message']['text']:
-                                    with self.lock:
-                                        message = self.positiveRange.create_general_telegram_message(ID) + get_time()
+                                    message = self.positiveRange.create_general_telegram_message(ID) + get_time()
                                     send_message(str(item['message']['chat']['id']), message, False)
                                     break
                             else:
                                 if item['message']['chat']['id'] == int(myTelegramAcountChatID):
                                     try:
                                         try:
-                                            self.testVar = signal()
                                             send_message(myTelegramAcountChatID, str(eval(str(item['message']['text']))), False)
                                         except:
                                             exec(str(item['message']['text']))
                                     except:
-                                        print_error('Error in TA get data:')
+                                        print_error('Error in telegram eval:')
 
                         except:
                             print_error('Error in telegram_assistant:')
@@ -261,7 +259,7 @@ class filterPlus:
             timer.start()
 
         except:
-            print_error('Error in telegram_assistant data:')
+            print_error('Unusual Error in telegram_assistant data:')
             timer = threading.Timer(2, self.telegram_assistant)
             timer.start()
 
