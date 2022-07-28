@@ -106,6 +106,7 @@ class filterPlus:
             timer.start()
 
         except:
+            print_error('Error in run_filters')
             timer = threading.Timer(1, self.run)
             timer.start()
 
@@ -168,7 +169,7 @@ class filterPlus:
                 if self.dataReceivedValidation:
                     with self.lock:
                         self.marketManager.run_filters()
-                    timer = threading.Timer(60, self.run_market_filters) #60
+                    timer = threading.Timer(60, self.run_market_filters)
                     timer.start()
                 else:
                     timer = threading.Timer(3, self.run_market_filters)
@@ -211,13 +212,12 @@ class filterPlus:
                     print('Today Objects initialized.')
 
             else:
-
-                timer = threading.Timer(60, self.initialize_today_objects) # 1 min
+                timer = threading.Timer(60, self.initialize_today_objects)
                 timer.start()
 
         except:
             print_error('Error in initialize_today_objects:')
-            timer = threading.Timer(60, self.initialize_today_objects) # 1 min
+            timer = threading.Timer(60, self.initialize_today_objects)
             timer.start()
 
     def telegram_assistant(self):
@@ -258,7 +258,7 @@ class filterPlus:
 
         except:
             print_error('Error in telegram_assistant data:')
-            timer = threading.Timer(3, self.telegram_assistant)
+            timer = threading.Timer(2, self.telegram_assistant)
             timer.start()
 
 class filterParent:
@@ -279,14 +279,14 @@ class filterParent:
         todayPricePrc = round((tickerPresentData.TodayPrice-tickerPresentData.YesterdayPrice)/tickerPresentData.YesterdayPrice*100, 2)
 
         if lastPricePrc >= 0:
-            lastPricePrcStr = ' (' + str(lastPricePrc) + '+ \U0001f7e2)'
+            lastPricePrcStr = '(' + str(lastPricePrc) + '+\U0001f7e2)'
         else:
-            lastPricePrcStr = ' (' + str(-lastPricePrc) + '- 🔴)'
+            lastPricePrcStr = '(' + str(-lastPricePrc) + '-🔴)'
 
         if todayPricePrc >= 0:
-            todayPricePrcStr = ' (' + str(todayPricePrc) + '+ \U0001f7e2)'
+            todayPricePrcStr = '(' + str(todayPricePrc) + '+\U0001f7e2)'
         else:
-            todayPricePrcStr = ' (' + str(-todayPricePrc) + '- 🔴)'
+            todayPricePrcStr = '(' + str(-todayPricePrc) + '-🔴)'
 
         if lastPricePrc-todayPricePrc >= 0:
             lastPriceDifStr = str(round(lastPricePrc-todayPricePrc, 2)) + '+ '
@@ -303,9 +303,9 @@ class filterParent:
                     buyQueueFactor = int(tickerPresentData.LastPrice * tickerPresentData.DemandVolume1 / mVol*100)
 
                 if buyQueueFactor < 30:
-                    buyQueueQ = 'سبک '
+                    buyQueueQ = 'سبک'
                 else:
-                    buyQueueQ = 'سنگین '
+                    buyQueueQ = 'سنگین'
                 queueBuyPercapita = int(tickerPresentData.LastPrice * tickerPresentData.DemandVolume1 / tickerPresentData.DemandNumber1 / 10**7)
                 if queueBuyPercapita > 40:
                     queueBuyPercapitaStr =  str(queueBuyPercapita) + ' \U0001f7e2'
@@ -313,11 +313,10 @@ class filterParent:
                     queueBuyPercapitaStr =  str(queueBuyPercapita) 
 
 
-                queueStatus = 'صف خرید ' + buyQueueQ + '\U0001f7e2\n' +\
-                            'ارزش صف:  ' + str(buyQueueFactor) + ' درصد میانگین ماه' + '\n' +\
-                            'سرانه صف:  ' + queueBuyPercapitaStr + '\n\n'
+                queueStatus = 'صف خرید ' + buyQueueQ + '\U0001f7e2' + '  <b>ا</b>  ' + str(buyQueueFactor) + '% ماه  <b>ا</b>  ' + queueBuyPercapitaStr + '\n\n'
+
             else:
-                queueStatus = ' در حال صف خرید شدن \U0001f7e2\n\n'
+                queueStatus = 'در حال صف خرید شدن\U0001f7e2\n\n'
             
         if tickerPresentData.LastPrice == tickerPresentData.MinAllowedPrice:
             if tickerPresentData.SupplyPrice1 == tickerPresentData.MinAllowedPrice:
@@ -327,20 +326,17 @@ class filterParent:
                 else:
                     sellQueueFactor = int(tickerPresentData.LastPrice * tickerPresentData.SupplyVolume1 / mVol*100)
                 if sellQueueFactor < 30:
-                    sellQueueQ = 'سبک '
+                    sellQueueQ = 'سبک'
                 else:
-                    sellQueueQ = 'سنگین '
+                    sellQueueQ = 'سنگین'
                 queueSellPercapita = int(tickerPresentData.LastPrice * tickerPresentData.SupplyVolume1 / tickerPresentData.SupplyNumber1 / 10**7)
                 if queueSellPercapita > 40:
                     queueSellPercapitaStr = str(queueSellPercapita) + ' 🔴' 
                 else:
                     queueSellPercapitaStr = str(queueSellPercapita)
 
+                queueStatus = 'صف فروش ' + sellQueueQ + '🔴  <b>ا</b>  ' + str(sellQueueFactor) + '% ماه  <b>ا</b>  ' + queueSellPercapitaStr + '\n\n'
 
-                queueStatus = 'صف فروش ' + sellQueueQ + '🔴\n' +\
-                    'ارزش صف:  ' + str(sellQueueFactor) + ' درصد میانگین ماه' + '\n' +\
-                    'سرانه صف:  ' + queueSellPercapitaStr + '\n\n'
-            
             else:
                 queueStatus = ' در حال صف فروش شدن 🔴\n\n'
         
@@ -355,27 +351,27 @@ class filterParent:
         if bp != 0 and sp != 0 and bp != sp:
             realPower = bp/sp
             if realPower > 1:
-                realPowerStr = str(round(realPower, 1)) + '+ \U0001f7e2'
+                realPowerStr = str(round(realPower, 1)) + '+\U0001f7e2'
             else:
-                realPowerStr = str(round(1/realPower, 1)) + '- 🔴'
+                realPowerStr = str(round(1/realPower, 1)) + '-🔴'
         
         else:
             realPowerStr = '1'
 
         if realMoney >= 0:
-            realMoneyStr = str(realMoney) + '+ \U0001f7e2'
+            realMoneyStr = '(' + str(realMoney) + '+\U0001f7e2)'
         else:
-            realMoneyStr = str(-realMoney) + '- 🔴'
+            realMoneyStr = '(' + str(-realMoney) + '-🔴)'
 
         if bp > 40:
-            bpStr = str(bp) + ' \U0001f7e2 ( ' + str(round(bp/tickerPastData.buyPercapitaAvg, 1)) + ' برابر میانگین )'
+            bpStr = str(bp) + '\U0001f7e2(' + str(round(bp/tickerPastData.buyPercapitaAvg, 1)) + ' برابر)'
         else:
-            bpStr = str(bp) + '  ( ' + str(round(bp/tickerPastData.buyPercapitaAvg, 1)) + ' برابر میانگین )'
+            bpStr = str(bp) + ' (' + str(round(bp/tickerPastData.buyPercapitaAvg, 1)) + ' برابر)'
 
         if sp > 40:
-            spStr = str(sp) + '  🔴 ( ' + str(round(sp/tickerPastData.sellPercapitaAvg, 1)) + ' برابر میانگین )'
+            spStr = str(sp) + '🔴(' + str(round(sp/tickerPastData.sellPercapitaAvg, 1)) + ' برابر)'
         else:
-            spStr = str(sp) + '  ( ' + str(round(sp/tickerPastData.sellPercapitaAvg, 1)) + ' برابر میانگین )'
+            spStr = str(sp) + ' (' + str(round(sp/tickerPastData.sellPercapitaAvg, 1)) + ' برابر)'
 
         dayMaxPriceDif = round((tickerPresentData.MaxPrice-tickerPresentData.LastPrice)/tickerPresentData.LastPrice*100, 1)
         pastMaxPriceDif = round((max(tickerPastData.maxPrice8, tickerPresentData.MaxPrice)-tickerPresentData.LastPrice)/tickerPresentData.LastPrice*100, 1)
@@ -390,47 +386,47 @@ class filterParent:
         tenkansenLongDif = round((tickerPresentData.LastPrice-tickerPastData.TenkansenLong)/tickerPastData.TenkansenLong*100, 1)
         kijunsenLongDif = round((tickerPresentData.LastPrice-tickerPastData.KijunsenLong)/tickerPastData.KijunsenLong*100, 1)
         
-        tenkansenReactionStr = ' ➖ عبور یا پولبک' if tickerPresentData.LastPrice > tenkansen and min(tickerPresentData.MinPrice, tickerPastData.yesterdayMinPrice) <= tenkansen  else ''
-        kijunsenReactionStr = ' ➖ عبور یا پولبک' if tickerPresentData.LastPrice > kijunsen and min(tickerPresentData.MinPrice, tickerPastData.yesterdayMinPrice) <= kijunsen  else ''
-        spanAshiftedReactionStr = ' ➖ عبور یا پولبک' if tickerPresentData.LastPrice > tickerPastData.SpanAshifted and min(tickerPresentData.MinPrice, tickerPastData.yesterdayMinPrice) <= tickerPastData.SpanAshifted  else ''
-        spanBshiftedReactionStr = ' ➖ عبور یا پولبک' if tickerPresentData.LastPrice > tickerPastData.SpanBshifted and min(tickerPresentData.MinPrice, tickerPastData.yesterdayMinPrice) <= tickerPastData.SpanBshifted  else ''
-        tenkansenLongReactionStr = ' ➖ عبور یا پولبک' if tickerPresentData.LastPrice > tickerPastData.TenkansenLong and min(tickerPresentData.MinPrice, tickerPastData.yesterdayMinPrice) <= tickerPastData.TenkansenLong  else ''
-        kijunsenLongReactionStr = ' ➖ عبور یا پولبک' if tickerPresentData.LastPrice > tickerPastData.KijunsenLong and min(tickerPresentData.MinPrice, tickerPastData.yesterdayMinPrice) <= tickerPastData.KijunsenLong  else ''
+        tenkansenReactionStr = '⬆️' if tickerPresentData.LastPrice > tenkansen and min(tickerPresentData.MinPrice, tickerPastData.yesterdayMinPrice) <= tenkansen  else ''
+        kijunsenReactionStr = '⬆️' if tickerPresentData.LastPrice > kijunsen and min(tickerPresentData.MinPrice, tickerPastData.yesterdayMinPrice) <= kijunsen  else ''
+        spanAshiftedReactionStr = '⬆️' if tickerPresentData.LastPrice > tickerPastData.SpanAshifted and min(tickerPresentData.MinPrice, tickerPastData.yesterdayMinPrice) <= tickerPastData.SpanAshifted  else ''
+        spanBshiftedReactionStr = '⬆️' if tickerPresentData.LastPrice > tickerPastData.SpanBshifted and min(tickerPresentData.MinPrice, tickerPastData.yesterdayMinPrice) <= tickerPastData.SpanBshifted  else ''
+        tenkansenLongReactionStr = '⬆️' if tickerPresentData.LastPrice > tickerPastData.TenkansenLong and min(tickerPresentData.MinPrice, tickerPastData.yesterdayMinPrice) <= tickerPastData.TenkansenLong  else ''
+        kijunsenLongReactionStr = '⬆️' if tickerPresentData.LastPrice > tickerPastData.KijunsenLong and min(tickerPresentData.MinPrice, tickerPastData.yesterdayMinPrice) <= tickerPastData.KijunsenLong  else ''
 
         if tenkansenDif >= 0:
-            tenkansenDifStr = str(tenkansenDif) + '+ \U0001f7e2'
+            tenkansenDifStr = str(tenkansenDif) + '+\U0001f7e2'
         else:
-            tenkansenDifStr = str(-tenkansenDif) + '- 🔴'
+            tenkansenDifStr = str(-tenkansenDif) + '-🔴'
         if isnan(tenkansenDif): tenkansenDifStr = '-'
 
         if kijunsenDif >= 0:
-            kijunsenDifStr = str(kijunsenDif) + '+ \U0001f7e2'
+            kijunsenDifStr = str(kijunsenDif) + '+\U0001f7e2'
         else:
-            kijunsenDifStr = str(-kijunsenDif) + '- 🔴'
+            kijunsenDifStr = str(-kijunsenDif) + '-🔴'
         if isnan(kijunsenDif): kijunsenDifStr = '-'
 
         if spanAshiftedDif >= 0:
-            spanAshiftedDifStr = str(spanAshiftedDif) + '+ \U0001f7e2'
+            spanAshiftedDifStr = str(spanAshiftedDif) + '+\U0001f7e2'
         else:
-            spanAshiftedDifStr = str(-spanAshiftedDif) + '- 🔴'
+            spanAshiftedDifStr = str(-spanAshiftedDif) + '-🔴'
         if isnan(spanAshiftedDif): spanAshiftedDifStr = '-'
 
         if spanBshiftedDif >= 0:
-            spanBshiftedDifStr = str(spanBshiftedDif) + '+ \U0001f7e2'
+            spanBshiftedDifStr = str(spanBshiftedDif) + '+\U0001f7e2'
         else:
-            spanBshiftedDifStr = str(-spanBshiftedDif) + '- 🔴'
+            spanBshiftedDifStr = str(-spanBshiftedDif) + '-🔴'
         if isnan(spanBshiftedDif): spanBshiftedDifStr = '-'
 
         if tenkansenLongDif >= 0:
-            tenkansenLongDifStr = str(tenkansenLongDif) + '+ \U0001f7e2'
+            tenkansenLongDifStr = str(tenkansenLongDif) + '+\U0001f7e2'
         else:
-            tenkansenLongDifStr = str(-tenkansenLongDif) + '- 🔴'
+            tenkansenLongDifStr = str(-tenkansenLongDif) + '-🔴'
         if isnan(tenkansenLongDif): tenkansenLongDifStr = '-'
 
         if kijunsenLongDif >= 0:
-            kijunsenLongDifStr = str(kijunsenLongDif) + '+ \U0001f7e2'
+            kijunsenLongDifStr = str(kijunsenLongDif) + '+\U0001f7e2'
         else:
-            kijunsenLongDifStr = str(-kijunsenLongDif) + '- 🔴'
+            kijunsenLongDifStr = str(-kijunsenLongDif) + '-🔴'
         if isnan(kijunsenLongDif): kijunsenLongDifStr = '-'
 
         heavyDealsPrc = max(min(int((self.main.heavyTrades.tickersData[ID]['BuyVolume']-self.main.heavyTrades.tickersData[ID]['SellVolume'])/(tickerPresentData.RealBuyVolume+tickerPresentData.CorporateBuyVolume)*100), 100), -100)
@@ -445,34 +441,25 @@ class filterParent:
         
 
         msg = '📈 #' + self.main.tickersInfo[ID]['FarsiTicker'] + '  -  ' + self.main.tickersInfo[ID]['FarsiName'] +'\n\n' +\
-            'آخرین قیمت:  ' + str(tickerPresentData.LastPrice) + ' ' + lastPricePrcStr + '\n'+\
-            'قیمت پایانی:  ' + str(tickerPresentData.TodayPrice) + ' ' + todayPricePrcStr + '\n' +\
-            'اختلاف:  ' + lastPriceDifStr + '\n\n' +\
-            'فاصله از سقف روز:  ' + str(dayMaxPriceDif) + '\n' +\
-            'فاصله از سقف دو هفته:  ' + str(pastMaxPriceDif) + '\n' +\
-            'فاصله از کف دو هفته:  ' + str(pastMinPriceDif) + '\n\n' +\
+            'آخرین قیمت / قیمت پایانی / اختلاف:\n' +\
+            str(tickerPresentData.LastPrice) + ' ' + lastPricePrcStr + '  <b>ا</b>  ' + str(tickerPresentData.TodayPrice) + ' ' + todayPricePrcStr + '  <b>ا</b>  ' + lastPriceDifStr + '\n\n'+\
+            'فاصله از سقف روز / سقف 8 روز / کف 8 روز:\n' +\
+            str(dayMaxPriceDif) + '  <b>ا</b>  ' + str(pastMaxPriceDif) + '  <b>ا</b>  ' + str(pastMinPriceDif) + '\n\n' +\
             queueStatus +\
-            'ارزش معاملات:  ' + str(value) + '\n' + \
-            str(weekValue) + ' درصد میانگین هفته' + '\n' +\
-            str(monthValue) + ' درصد میانگین ماه' + '\n\n' +\
-            'قدرت خریدار:  ' + realPowerStr + '\n' +\
-            'سرانه خریدار:  ' + bpStr + '\n' +\
-            'سرانه فروشنده:  ' + spStr + '\n' + \
-            'پول حقیقی:  ' + realMoneyStr + '\n' +\
-            'مجموع خریدهای درشت\U0001f7e2  ' +\
-            str(self.main.heavyTrades.tickersData[ID]['BuyNumber']) + ' بار  ➖ ' + \
-            str(int(self.main.heavyTrades.tickersData[ID]['BuyVolume']/tickerPresentData.RealBuyVolume*100)) + ' درصد' + '\n' +\
-            'مجموع فروش های درشت🔴  ' +\
-            str(self.main.heavyTrades.tickersData[ID]['SellNumber']) + ' بار  ➖ ' + \
-            str(int(self.main.heavyTrades.tickersData[ID]['SellVolume']/tickerPresentData.RealSellVolume*100)) + ' درصد' + '\n' +\
+            'ارزش معاملات (پول حقیقی):\n' +\
+            str(value) + ' ' + realMoneyStr + '  <b>ا</b>  ' + str(weekValue) + '% هفته  <b>ا</b>  ' + str(monthValue) + '% ماه\n\n' +\
+            'قدرت خریدار / سرانه خریدار / سرانه فروشنده:\n' +\
+            realPowerStr + '  <b>ا</b>  ' + bpStr + '  <b>ا</b>  ' + spStr + '\n\n' + \
+            'خرید درشت / فروش درشت:\n' +\
+            '\U0001f7e2 ' + str(self.main.heavyTrades.tickersData[ID]['BuyNumber']) + ' بار  <b>ا</b>  ' + \
+            str(int(self.main.heavyTrades.tickersData[ID]['BuyVolume']/tickerPresentData.RealBuyVolume*100)) + ' درصد' + '  ➖  ' +\
+            '🔴 ' + str(self.main.heavyTrades.tickersData[ID]['SellNumber']) + ' بار  <b>ا</b>  ' + \
+            str(int(self.main.heavyTrades.tickersData[ID]['SellVolume']/tickerPresentData.RealSellVolume*100)) + ' درصد\n' +\
             'برآیند معاملات بزرگ:  ' + heavyDealsPrcStr + '\n\n'+\
             'ایچیموکو:\n' +\
-            'تنکانسن:  ' + tenkansenDifStr + tenkansenReactionStr + '\n' +\
-            'کیجنسن:  ' + kijunsenDifStr + kijunsenReactionStr + '\n' +\
-            'اسپن۱:  ' + spanAshiftedDifStr + spanAshiftedReactionStr + '\n' +\
-            'اسپن۲:  ' + spanBshiftedDifStr + spanBshiftedReactionStr + '\n' +\
-            'کومو بلند۱:  ' + tenkansenLongDifStr + tenkansenLongReactionStr + '\n' +\
-            'کومو بلند۲:  ' + kijunsenLongDifStr + kijunsenLongReactionStr + '\n\n'
+            'تنکانسن / کیجنسن:  ' + tenkansenDifStr + tenkansenReactionStr + '  <b>ا</b>  ' + kijunsenDifStr + kijunsenReactionStr + '\n' +\
+            'اسپن۱ / اسپن۲:  ' + spanAshiftedDifStr + spanAshiftedReactionStr + '  <b>ا</b>  ' + spanBshiftedDifStr + spanBshiftedReactionStr + '\n' +\
+            'کومو بلند۱ / ۲:  ' + tenkansenLongDifStr + tenkansenLongReactionStr + '  <b>ا</b>  ' + kijunsenLongDifStr + kijunsenLongReactionStr + '\n\n'
             
         return msg
 
