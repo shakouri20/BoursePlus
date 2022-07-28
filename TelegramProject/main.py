@@ -2,6 +2,7 @@
 import datetime, threading, os, sys
 from math import ceil, isnan, log10, nan
 from Application.Services.WriteData.GetOnlineDataService import get_last_clientType_Data, get_marketWatch_data_tse_method
+from Application.Services.WriteData.WriteOfflineData.WriteOfflineDataStockService import write_offline_data_stock
 from Application.Utility.DateConverter import gregorian_to_jalali
 from Domain.Enums.QueryOutPutType import queryOutPutType
 from TelegramProject.DataClasses import *
@@ -189,9 +190,11 @@ class filterPlus:
             nowObj = datetime.datetime.now()
             now = nowObj.hour*3600 + nowObj.minute*60 + nowObj.second
 
-            if self.firstTime or 28800 < now < 29400 and nowObj.weekday() not in [3, 4]: # 28800 (08:00) 29400 (08:10) 
+            if self.firstTime or 72300 < now < 72400: # 28800 (08:00) 29400 (08:10)  and nowObj.weekday() not in [3, 4]
 
                 with self.lock:
+
+                    write_offline_data_stock()
 
                     self.firstTime = 0
                     self.dataInitTime = 0
@@ -206,7 +209,7 @@ class filterPlus:
                     self.heavyTrades: heavyTrades = heavyTrades(self)
                     self.marketManager: marketManager = marketManager(self)
 
-                    timer = threading.Timer(900, self.initialize_today_objects) # 15 min
+                    timer = threading.Timer(60, self.initialize_today_objects) # 15 min
                     timer.start()
 
                     print('Today Objects initialized.')
