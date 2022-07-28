@@ -194,7 +194,8 @@ class filterPlus:
 
                 with self.lock:
 
-                    write_offline_data_stock()
+                    if not self.firstTime:
+                        write_offline_data_stock()
 
                     self.firstTime = 0
                     self.dataInitTime = 0
