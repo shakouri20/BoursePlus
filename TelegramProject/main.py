@@ -550,6 +550,10 @@ class heavyTrades(filterParent):
             self.tickersData[ID]['BuyVolume'] = 0
             self.tickersData[ID]['SellVolume'] = 0
         self.reportTime = [0, 0, 0, 0]
+        self.topHighPrc = {}
+        self.topLowPrc = {}
+        self.topHighValue = {}
+        self.topLowValue = {}
 
     def run_filter(self):
 
@@ -661,15 +665,15 @@ class heavyTrades(filterParent):
                     except:
                         print_error('HeavyTrade update:' + str(ID))
         
-        if  self.main.startTime+5*60 < now < self.main.endTime+5*60 and nowObj.weekday() not in [3, 4] and int(now/100)*100 % 900 == 0:
+        if  self.main.startTime+5*60 < now < self.main.endTime+5*60 and nowObj.weekday() not in [3, 4] and now % 900 < 5*60:
             for i in range(4):
-                if now - self.reportTime[i] > 600:
+                if now - self.reportTime[i] > 10*60:
                     break
             else:
                 return
             msgs = self.create_report()
             for i in range(4):
-                if now - self.reportTime[i] > 600 and send_message(doroshtBinChatID, msgs[i]):
+                if now - self.reportTime[i] > 10*60 and send_message(doroshtBinChatID, msgs[i]):
                     self.reportTime[i] = now
 
     def create_report(self):
@@ -694,48 +698,108 @@ class heavyTrades(filterParent):
                 print_error('HeavyTrade report ' + str(ID))
         # top high prc
         signaledTickers.sort(key=lambda x: x[1], reverse=True)
-        msg1 = '#گزارش معاملات بزرگ:\n\n 30 شرکت با بیشترین برآیند معاملات بزرگ به درصد\n\n'
+        msg1 = '#گزارش معاملات بزرگ:\n\n\U0001f7e2بیشترین برآیند معاملات بزرگ به درصد\U0001f7e2\n\n'
         for i in range(min(30, len(signaledTickers))):
             heavyDealsPrc = signaledTickers[i][1]
             heavyDealsValue = signaledTickers[i][2]
             if heavyDealsPrc > 0:
+                tickerName = signaledTickers[i][0]
                 heavyDealsPrcStr = '<b>' +str(heavyDealsPrc) + '+ درصد</b>'
                 heavyDealsValueStr = '<b>' +str(heavyDealsValue) + '+ م</b>'
-                msg1 += '\U0001f7e2  #' + signaledTickers[i][0] + '➖' + signaledTickers[i][3] + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
+                rankChange = ''
+                if tickerName in self.topHighPrc:
+                    if i+1 < self.topHighPrc[tickerName]:
+                        rankChange = '⬆️'
+                    elif i+1 > self.topHighPrc[tickerName]:
+                        rankChange = '⬇️'
+                    else:
+                        rankChange = '⏺'
+                else:
+                    rankChange = '⬆️'
+                msg1 += rankChange + '  #' + tickerName + '➖' + signaledTickers[i][3] + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
         msg1 += '\n' + get_time()
+        self.topHighPrc = {}
+        for i in range(min(30, len(signaledTickers))): 
+            if signaledTickers[i][1] > 0:
+                self.topHighPrc[signaledTickers[i][0]] = i+1
         # top low prc
         signaledTickers.sort(key=lambda x: x[1])
-        msg2 = '#گزارش معاملات بزرگ:\n\n 30 شرکت با کمترین برآیند معاملات بزرگ به درصد\n\n'
+        msg2 = '#گزارش معاملات بزرگ:\n\n🔴کمترین برآیند معاملات بزرگ به درصد🔴\n\n'
         for i in range(min(30, len(signaledTickers))):
             heavyDealsPrc = signaledTickers[i][1]
             heavyDealsValue = signaledTickers[i][2]
             if heavyDealsPrc < 0:
+                tickerName = signaledTickers[i][0]
                 heavyDealsPrcStr = '<b>' +str(-heavyDealsPrc) + '- درصد</b>'
                 heavyDealsValueStr = '<b>' +str(-heavyDealsValue) + '- م</b>'
-                msg2 += ' 🔴 #' + signaledTickers[i][0] + '➖' + signaledTickers[i][3] + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
+                rankChange = ''
+                if tickerName in self.topLowPrc:
+                    if i+1 < self.topLowPrc[tickerName]:
+                        rankChange = '⬆️'
+                    elif i+1 > self.topLowPrc[tickerName]:
+                        rankChange = '⬇️'
+                    else:
+                        rankChange = '⏺'
+                else:
+                    rankChange = '⬆️'
+                msg2 += rankChange + '  #' + tickerName + '➖' + signaledTickers[i][3] + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
         msg2 += '\n' + get_time()
+        self.topLowPrc = {}
+        for i in range(min(30, len(signaledTickers))): 
+            if signaledTickers[i][1] < 0:
+                self.topLowPrc[signaledTickers[i][0]] = i+1
         # top high value
         signaledTickers.sort(key=lambda x: x[2], reverse=True)
-        msg3 = '#گزارش معاملات بزرگ:\n\n 30 شرکت با بیشترین برآیند معاملات بزرگ به ارزش\n\n'
+        msg3 = '#گزارش معاملات بزرگ:\n\n\U0001f7e2بیشترین برآیند معاملات بزرگ به ارزش\U0001f7e2\n\n'
         for i in range(min(30, len(signaledTickers))):
             heavyDealsPrc = signaledTickers[i][1]
             heavyDealsValue = signaledTickers[i][2]
             if heavyDealsPrc > 0:
+                tickerName = signaledTickers[i][0]
                 heavyDealsPrcStr = '<b>' +str(heavyDealsPrc) + '+ درصد</b>'
                 heavyDealsValueStr = '<b>' +str(heavyDealsValue) + '+ م</b>'
-                msg3 += '\U0001f7e2  #' + signaledTickers[i][0] + '➖' + signaledTickers[i][3] + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
+                rankChange = ''
+                if tickerName in self.topHighValue:
+                    if i+1 < self.topHighValue[tickerName]:
+                        rankChange = '⬆️'
+                    elif i+1 > self.topHighValue[tickerName]:
+                        rankChange = '⬇️'
+                    else:
+                        rankChange = '⏺'
+                else:
+                    rankChange = '⬆️'
+                msg3 += rankChange + '  #' + tickerName + '➖' + signaledTickers[i][3] + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
         msg3 += '\n' + get_time()
+        self.topHighValue = {}
+        for i in range(min(30, len(signaledTickers))): 
+            if signaledTickers[i][1] > 0:
+                self.topHighValue[signaledTickers[i][0]] = i+1
         # top low value
         signaledTickers.sort(key=lambda x: x[2])
-        msg4 = '#گزارش معاملات بزرگ:\n\n 30 شرکت با کمترین برآیند معاملات بزرگ به ارزش\n\n'
+        msg4 = '#گزارش معاملات بزرگ:\n\n🔴کمترین برآیند معاملات بزرگ به ارزش🔴\n\n'
         for i in range(min(30, len(signaledTickers))):
             heavyDealsPrc = signaledTickers[i][1]
             heavyDealsValue = signaledTickers[i][2]
             if heavyDealsPrc < 0:
+                tickerName = signaledTickers[i][0]
                 heavyDealsPrcStr = '<b>' +str(-heavyDealsPrc) + '- درصد</b>'
                 heavyDealsValueStr = '<b>' +str(-heavyDealsValue) + '- م</b>'
-                msg4 += ' 🔴 #' + signaledTickers[i][0] + '➖' + signaledTickers[i][3] + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
+                rankChange = ''
+                if tickerName in self.topLowValue:
+                    if i+1 < self.topLowValue[tickerName]:
+                        rankChange = '⬆️'
+                    elif i+1 > self.topLowValue[tickerName]:
+                        rankChange = '⬇️'
+                    else:
+                        rankChange = '⏺'
+                else:
+                    rankChange = '⬆️'
+                msg4 += rankChange + '  #' + tickerName + '➖' + signaledTickers[i][3] + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
         msg4 += '\n' + get_time()
+        self.topLowValue = {}
+        for i in range(min(30, len(signaledTickers))): 
+            if signaledTickers[i][1] < 0:
+                self.topLowValue[signaledTickers[i][0]] = i+1
         return [msg1, msg2, msg3, msg4]
         
 class positiveRange(filterParent):
@@ -1200,10 +1264,12 @@ class marketFilter:
         ax[1][1].axhline(-log10(1.5))  
         ax[1][1].legend(loc= "upper right", prop={'size': labelSize})
         ax2 = ax[1][1].twinx()
-        ax2.plot(industryData.Time, industryData.HeavyDealsPrc)
+        ax2.plot(industryData.Time, industryData.HeavyDealsPrc, label= 'SmartMoney Percentage')
         prcMax = max(industryData.HeavyDealsPrc)
         prcMin = min(industryData.HeavyDealsPrc)
-        ax2.set_ylim([-1.2*max(abs(prcMin), abs(prcMax)), 1.2*max(abs(prcMin), abs(prcMax))])
+        startLim = min(-1.2*max(abs(prcMin), abs(prcMax)), -1)
+        stopLim = max(1.2*max(abs(prcMin), abs(prcMax)), 1)
+        ax2.set_ylim([startLim, stopLim])
         ax2.legend(loc= "upper left", prop={'size': labelSize})
 
         today = datetime.datetime.now().date()
@@ -1268,6 +1334,12 @@ class marketTrend(marketFilter):
             self.groupsData[groupName]['Trend'] = None
             self.groupsData[groupName]['LastTime'] = 0
 
+        self.reportTime = [0, 0, 0, 0]
+        self.topHighPrc = {}
+        self.topLowPrc = {}
+        self.topHighValue = {}
+        self.topLowValue = {}
+
     def run_filter(self):
 
         now = datetime.datetime.now()
@@ -1308,7 +1380,7 @@ class marketTrend(marketFilter):
 
             if groupName == 'کل_بازار':
 
-                if trendChange or now-self.groupsData[groupName]['LastTime'] > 3*60 and int(now/100)*100 % 900 == 0 and now > 9*3600+4*60:
+                if trendChange or now-self.groupsData[groupName]['LastTime'] > 10*60 and now % 900 < 5*60 and now > 9*3600+4*60:
             
                     telegramMessage = self.create_general_telegram_message(groupName)
 
@@ -1320,7 +1392,146 @@ class marketTrend(marketFilter):
                         print('Market trend signaled.')
                     else:
                         print('Error sending market image')
-            
+
+        if now % 900 < 5*60:
+            for i in range(4):
+                if now - self.reportTime[i] > 10*60:
+                    break
+            else:
+                return
+            msgs = self.create_report()
+            for i in range(4):
+                if now - self.reportTime[i] > 10*60 and send_message(marketTrendChatID, msgs[i]):
+                    self.reportTime[i] = now
+
+    def create_report(self):
+        signaledIndustries = []
+        for groupName in self.manager.groups:
+            industryData: tickersGroup = self.manager.groups[groupName]
+            if len(industryData.Time) != 0:
+                try:
+                    if industryData.LastPricePrcAverage[-1] >= 0:
+                        indexStr = '<b>' +str(industryData.LastPricePrcAverage[-1]) + '+ \U0001f7e2</b>'
+                    else:
+                        indexStr = '<b>' +str(-industryData.LastPricePrcAverage[-1]) + '- 🔴</b>'
+                    indexStr += '⬆️' if self.groupsData[groupName]['Trend'] else '⬇️'
+                    signaledIndustries.append([groupName,
+                                            indexStr,
+                                            industryData.HeavyDealsPrc[-1],
+                                            round(industryData.HeavyBuysValue[-1]-industryData.HeavySellsValue[-1], 1)
+                                            ])
+                except:
+                    print_error('HeavyTrade report ' + str(groupName))
+        # top high prc
+        signaledIndustries.sort(key=lambda x: x[2], reverse=True)
+        msg1 = '#گزارش معاملات بزرگ صنایع:\n\n\U0001f7e2بیشترین برآیند معاملات بزرگ به درصد\U0001f7e2\n\n'
+        for i in range(len(signaledIndustries)):
+            index = signaledIndustries[i][1]
+            heavyDealsPrc = signaledIndustries[i][2]
+            heavyDealsValue = signaledIndustries[i][3]
+            if heavyDealsPrc > 0:
+                industryName = signaledIndustries[i][0]
+                heavyDealsPrcStr = '<b>' +str(heavyDealsPrc) + '+ درصد</b>'
+                heavyDealsValueStr = '<b>' +str(heavyDealsValue) + '+ م</b>'
+                rankChange = ''
+                if industryName in self.topHighPrc:
+                    if i+1 < self.topHighPrc[industryName]:
+                        rankChange = '⬆️'
+                    elif i+1 > self.topHighPrc[industryName]:
+                        rankChange = '⬇️'
+                    else:
+                        rankChange = '⏺'
+                else:
+                    rankChange = '⬆️'
+                msg1 += rankChange + ' #' + industryName + '➖' + index + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
+        msg1 += '\n' + get_time()
+        self.topHighPrc = {}
+        for i in range(len(signaledIndustries)): 
+            if signaledIndustries[i][2] > 0:
+                self.topHighPrc[signaledIndustries[i][0]] = i+1
+        # top Low prc
+        signaledIndustries.sort(key=lambda x: x[2])
+        msg2 = '#گزارش معاملات بزرگ صنایع:\n\n🔴کمترین برآیند معاملات بزرگ به درصد🔴\n\n'
+        for i in range(len(signaledIndustries)):
+            index = signaledIndustries[i][1]
+            heavyDealsPrc = signaledIndustries[i][2]
+            heavyDealsValue = signaledIndustries[i][3]
+            if heavyDealsPrc < 0:
+                industryName = signaledIndustries[i][0]
+                heavyDealsPrcStr = '<b>' +str(-heavyDealsPrc) + '+ درصد</b>'
+                heavyDealsValueStr = '<b>' +str(-heavyDealsValue) + '+ م</b>'
+                rankChange = ''
+                if industryName in self.topLowPrc:
+                    if i+1 < self.topLowPrc[industryName]:
+                        rankChange = '⬆️'
+                    elif i+1 > self.topLowPrc[industryName]:
+                        rankChange = '⬇️'
+                    else:
+                        rankChange = '⏺'
+                else:
+                    rankChange = '⬆️'
+                msg2 += rankChange + ' #' + industryName + '➖' + index + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
+        msg2 += '\n' + get_time()
+        self.topLowPrc = {}
+        for i in range(len(signaledIndustries)): 
+            if signaledIndustries[i][2] < 0:
+                self.topLowPrc[signaledIndustries[i][0]] = i+1
+        # top high value
+        signaledIndustries.sort(key=lambda x: x[3], reverse=True)
+        msg3 = '#گزارش معاملات بزرگ صنایع:\n\n\U0001f7e2بیشترین برآیند معاملات بزرگ به ارزش\U0001f7e2\n\n'
+        for i in range(len(signaledIndustries)):
+            index = signaledIndustries[i][1]
+            heavyDealsPrc = signaledIndustries[i][2]
+            heavyDealsValue = signaledIndustries[i][3]
+            if heavyDealsPrc > 0:
+                industryName = signaledIndustries[i][0]
+                heavyDealsPrcStr = '<b>' +str(heavyDealsPrc) + '+ درصد</b>'
+                heavyDealsValueStr = '<b>' +str(heavyDealsValue) + '+ م</b>'
+                rankChange = ''
+                if industryName in self.topHighValue:
+                    if i+1 < self.topHighValue[industryName]:
+                        rankChange = '⬆️'
+                    elif i+1 > self.topHighValue[industryName]:
+                        rankChange = '⬇️'
+                    else:
+                        rankChange = '⏺'
+                else:
+                    rankChange = '⬆️'
+                msg3 += rankChange + ' #' + industryName + '➖' + index + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
+        msg3 += '\n' + get_time()
+        self.topHighValue = {}
+        for i in range(len(signaledIndustries)): 
+            if signaledIndustries[i][2] > 0:
+                self.topHighValue[signaledIndustries[i][0]] = i+1
+        # top Low value
+        signaledIndustries.sort(key=lambda x: x[3])
+        msg4 = '#گزارش معاملات بزرگ صنایع:\n\n🔴کمترین برآیند معاملات بزرگ به ارزش🔴\n\n'
+        for i in range(len(signaledIndustries)):
+            index = signaledIndustries[i][1]
+            heavyDealsPrc = signaledIndustries[i][2]
+            heavyDealsValue = signaledIndustries[i][3]
+            if heavyDealsPrc < 0:
+                industryName = signaledIndustries[i][0]
+                heavyDealsPrcStr = '<b>' +str(-heavyDealsPrc) + '+ درصد</b>'
+                heavyDealsValueStr = '<b>' +str(-heavyDealsValue) + '+ م</b>'
+                rankChange = ''
+                if industryName in self.topLowValue:
+                    if i+1 < self.topLowValue[industryName]:
+                        rankChange = '⬆️'
+                    elif i+1 > self.topLowValue[industryName]:
+                        rankChange = '⬇️'
+                    else:
+                        rankChange = '⏺'
+                else:
+                    rankChange = '⬆️'
+                msg4 += rankChange + ' #' + industryName + '➖' + index + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
+        msg4 += '\n' + get_time()
+        self.topLowValue = {}
+        for i in range(len(signaledIndustries)): 
+            if signaledIndustries[i][2] < 0:
+                self.topLowValue[signaledIndustries[i][0]] = i+1
+        return [msg1, msg2, msg3, msg4]
+
 class marketRise(marketFilter):
     
     def __init__(self, manager: marketManager) -> None:

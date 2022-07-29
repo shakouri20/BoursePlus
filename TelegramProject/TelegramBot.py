@@ -19,7 +19,7 @@ def send_message(chatID, message, replyMessageID= None):
     if replyMessageID != None:
         data = {'chat_id': chatID, 'text': message, 'parse_mode': 'HTML', 'reply_to_message_id': replyMessageID}
     else:
-        data = {'chat_id': chatID, 'text': message, 'parse_mode': 'HTML'}
+        data = {'chat_id': chatID, 'text': message, 'parse_mode': 'HTML'} #, 'reply_markup': {'inline_keyboard': [[{'text': 'Hello', 'callback_data': 'Pressed'}]]}
 
     for _ in range(2):
         try:
@@ -28,7 +28,7 @@ def send_message(chatID, message, replyMessageID= None):
         except:
             pass
     else:
-        print('Telegram Error...')
+        print('Message Error...')
         return False
 
 def send_photo(chatID, filePath, caption):
@@ -36,13 +36,18 @@ def send_photo(chatID, filePath, caption):
     data = {'chat_id': chatID, 'caption': caption, 'parse_mode': 'HTML'}
     file = {'photo': open(filePath, 'rb')}
 
-    for _ in range(5):
+    for _ in range(3):
         try:
-            requests.post(url, data= data, proxies= proxy, files= file, timeout= 5)
-            return True
+            response = requests.post(url, data= data, proxies= proxy, files= file, timeout= 5)
+            data = json.loads(response.text)
+            if data['ok']:
+                return True
+            else:
+                pass
         except:
             pass
     else:
+        print('Photo Error...')
         return False
 
 def get_updates(offset= None):
