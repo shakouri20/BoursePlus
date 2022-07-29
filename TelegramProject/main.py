@@ -347,33 +347,88 @@ class filterParent:
         weekValue = int(tickerPresentData.TodayPrice*tickerPresentData.Volume/tickerPastData.WeeklyValue*100)
         monthValue = int(tickerPresentData.TodayPrice*tickerPresentData.Volume/tickerPastData.MonthlyValue*100)
 
-        bp = ceil(tickerPresentData.RealBuyVolume/tickerPresentData.RealBuyNumber*tickerPresentData.LastPrice/10**7 if tickerPresentData.RealBuyNumber != 0 else 0)
-        sp = ceil(tickerPresentData.RealSellVolume/tickerPresentData.RealSellNumber*tickerPresentData.LastPrice/10**7 if tickerPresentData.RealSellNumber != 0 else 0)
+        bp = ceil(tickerPresentData.RealBuyVolume/tickerPresentData.RealBuyNumber*tickerPresentData.LastPrice/10**7) if tickerPresentData.RealBuyNumber != 0 else nan
+        sp = ceil(tickerPresentData.RealSellVolume/tickerPresentData.RealSellNumber*tickerPresentData.LastPrice/10**7) if tickerPresentData.RealSellNumber != 0 else nan
         realMoney = round((tickerPresentData.RealBuyVolume-tickerPresentData.RealSellVolume)*tickerPresentData.LastPrice/10**10, 2)
-        if bp != 0 and sp != 0 and bp != sp:
-            realPower = bp/sp
-            if realPower > 1:
-                realPowerStr = str(round(realPower, 1)) + '+\U0001f7e2'
+        if isnan(bp) == 0 and isnan(sp) == 0:
+            if bp != sp:
+                realPower = bp/sp
+                if realPower > 1:
+                    realPowerStr = str(round(realPower, 1)) + '+\U0001f7e2'
+                else:
+                    realPowerStr = str(round(1/realPower, 1)) + '-🔴'
             else:
-                realPowerStr = str(round(1/realPower, 1)) + '-🔴'
-        
+                realPowerStr = '1.0'
         else:
-            realPowerStr = '1.0'
+            realPowerStr = '-'
+
+        if isnan(bp) == 0:
+            if bp > 40:
+                bpStr = str(bp) + ' (' + str(round(bp/tickerPastData.buyPercapitaAvg, 1)) + ' برابر)\U0001f7e2'
+            else:
+                bpStr = str(bp) + ' (' + str(round(bp/tickerPastData.buyPercapitaAvg, 1)) + ' برابر)'
+        else:
+            bpStr = '-'
+
+        if isnan(sp) == 0:
+            if sp > 40:
+                spStr = str(sp) + ' (' + str(round(sp/tickerPastData.sellPercapitaAvg, 1)) + ' برابر)🔴'
+            else:
+                spStr = str(sp) + ' (' + str(round(sp/tickerPastData.sellPercapitaAvg, 1)) + ' برابر)'
+        else:
+            spStr = '-'
 
         if realMoney >= 0:
             realMoneyStr = '(' + str(realMoney) + '+\U0001f7e2)'
         else:
             realMoneyStr = '(' + str(-realMoney) + '-🔴)'
 
-        if bp > 40:
-            bpStr = str(bp) + ' (' + str(round(bp/tickerPastData.buyPercapitaAvg, 1)) + ' برابر)\U0001f7e2'
-        else:
-            bpStr = str(bp) + ' (' + str(round(bp/tickerPastData.buyPercapitaAvg, 1)) + ' برابر)'
+        ctDifStr = ''
 
-        if sp > 40:
-            spStr = str(sp) + ' (' + str(round(sp/tickerPastData.sellPercapitaAvg, 1)) + ' برابر)🔴'
-        else:
-            spStr = str(sp) + ' (' + str(round(sp/tickerPastData.sellPercapitaAvg, 1)) + ' برابر)'
+        try:
+            tickerHistory: historyData = self.main.dataHandler.history['1m'][ID]
+
+            indice = -min(len(tickerHistory.LastPrice), 10)
+
+            bpDif = (tickerPresentData.RealBuyVolume-tickerHistory.RealBuyVolume[indice]) * tickerPresentData.TodayPrice/\
+                    (tickerPresentData.RealBuyNumber-tickerHistory.RealBuyNumber[indice]) if (tickerPresentData.RealBuyNumber-tickerHistory.RealBuyNumber[indice]) != 0 else nan
+            spDif = (tickerPresentData.RealSellVolume-tickerHistory.RealSellVolume[indice]) * tickerPresentData.TodayPrice/\
+                    (tickerPresentData.RealSellNumber-tickerHistory.RealSellNumber[indice]) if (tickerPresentData.RealSellNumber-tickerHistory.RealSellNumber[indice]) != 0 else nan
+
+            if isnan(bpDif) == 0 and isnan(spDif) == 0:
+                if bpDif != spDif:
+                    realPowerDif = bpDif/spDif
+                    if realPowerDif > 1:
+                        realPowerDifStr = str(round(realPowerDif, 1)) + '+\U0001f7e2'
+                    else:
+                        realPowerDifStr = str(round(1/realPowerDif, 1)) + '-🔴'
+                else:
+                    realPowerDifStr = '1.0'
+            else:
+                realPowerDifStr = '-'
+
+            if isnan(bpDif) == 0:
+                if bpDif > 40:
+                    bpDifStr = str(bpDif) + ' (' + str(round(bpDif/tickerPastData.buyPercapitaAvg, 1)) + ' برابر)\U0001f7e2'
+                else:
+                    bpDifStr = str(bpDif) + ' (' + str(round(bpDif/tickerPastData.buyPercapitaAvg, 1)) + ' برابر)'
+            else:
+                bpDifStr = '-'
+
+            if isnan(spDif) == 0:
+                if spDif > 40:
+                    spDifStr = str(spDif) + ' (' + str(round(spDif/tickerPastData.sellPercapitaAvg, 1)) + ' برابر)🔴'
+                else:
+                    spDifStr = str(spDif) + ' (' + str(round(spDif/tickerPastData.sellPercapitaAvg, 1)) + ' برابر)'
+            else:
+                spDifStr = '-'
+
+            if bpDifStr != '-' or spDifStr != '-' or realPowerDifStr != '-':
+                ctDifStr = realPowerDifStr + '  <b>ا</b>  ' + bpDifStr + '  <b>ا</b>  ' + spDifStr + '\n'
+            
+        except:
+            pass
+
 
         dayMaxPriceDif = round((tickerPresentData.MaxPrice-tickerPresentData.LastPrice)/tickerPresentData.LastPrice*100, 1)
         pastMaxPriceDif = round((max(tickerPastData.maxPrice8, tickerPresentData.MaxPrice)-tickerPresentData.LastPrice)/tickerPresentData.LastPrice*100, 1)
@@ -451,7 +506,8 @@ class filterParent:
             'ارزش معاملات (پول حقیقی):\n' +\
             str(value) + ' ' + realMoneyStr + '  <b>ا</b>  ' + str(weekValue) + '% هفته  <b>ا</b>  ' + str(monthValue) + '% ماه\n\n' +\
             'قدرت خریدار / سرانه خریدار / سرانه فروشنده:\n' +\
-            realPowerStr + '  <b>ا</b>  ' + bpStr + '  <b>ا</b>  ' + spStr + '\n\n' + \
+            realPowerStr + '  <b>ا</b>  ' + bpStr + '  <b>ا</b>  ' + spStr + '\n' + \
+            ctDifStr + '\n' + \
             'خرید درشت / فروش درشت:\n' +\
             '\U0001f7e2 ' + str(self.main.heavyTrades.tickersData[ID]['BuyNumber']) + ' بار  <b>ا</b>  ' + \
             str(int(self.main.heavyTrades.tickersData[ID]['BuyVolume']/tickerPresentData.RealBuyVolume*100)) + ' درصد' + '  ➖  ' +\
@@ -850,9 +906,8 @@ class positiveRange(filterParent):
                             else:
                                 priceDifStr = str(-priceDif) + '-'
 
-                            filterMessage = 'تغییر قیمت:  ' + priceDifStr + ' درصد\n' +\
-                                'ارزش معاملات:  ' + str(normalValue) + ' برابر حالت عادی\n' +\
-                                'تعداد سیگنال:  ' + str(len(self.tickersData[ID]['Signals'])+1) + '\n\n'
+                            filterMessage = 'تغییر قیمت / حجم / تعداد سیگنال:' + '\n' +\
+                            priceDifStr + '  <b>ا</b>  ' + str(normalValue) + '  <b>ا</b>  ' + str(len(self.tickersData[ID]['Signals'])+1) + '\n\n'
 
                             telegramMessage = self.create_general_telegram_message(ID) + filterMessage + get_time()
 
@@ -1087,7 +1142,7 @@ class tickersGroup:
 
                 tickerHistory: historyData = main.dataHandler.history['1m'][ID]
 
-                indice = -min(len(tickerHistory.LastPrice), 60)
+                indice = -min(len(tickerHistory.LastPrice), 10)
 
                 realPowerLogDifSum += log10(((tickerPresentData.RealBuyVolume-tickerHistory.RealBuyVolume[indice])/(tickerPresentData.RealBuyNumber-tickerHistory.RealBuyNumber[indice]))/((tickerPresentData.RealSellVolume-tickerHistory.RealSellVolume[indice])/(tickerPresentData.RealSellNumber-tickerHistory.RealSellNumber[indice])))
                 
