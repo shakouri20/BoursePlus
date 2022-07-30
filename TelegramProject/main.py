@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import  matplotlib
 
+matplotlib.use('Agg')
 matplotlib.rc('xtick', labelsize=6) 
 matplotlib.rc('ytick', labelsize=6)
 
@@ -390,10 +391,10 @@ class filterParent:
 
             indice = -min(len(tickerHistory.LastPrice), 10)
 
-            bpDif = (tickerPresentData.RealBuyVolume-tickerHistory.RealBuyVolume[indice]) * tickerPresentData.TodayPrice/\
-                    (tickerPresentData.RealBuyNumber-tickerHistory.RealBuyNumber[indice]) if (tickerPresentData.RealBuyNumber-tickerHistory.RealBuyNumber[indice]) != 0 else nan
-            spDif = (tickerPresentData.RealSellVolume-tickerHistory.RealSellVolume[indice]) * tickerPresentData.TodayPrice/\
-                    (tickerPresentData.RealSellNumber-tickerHistory.RealSellNumber[indice]) if (tickerPresentData.RealSellNumber-tickerHistory.RealSellNumber[indice]) != 0 else nan
+            bpDif = ceil((tickerPresentData.RealBuyVolume-tickerHistory.RealBuyVolume[indice]) * tickerPresentData.TodayPrice/\
+                    (tickerPresentData.RealBuyNumber-tickerHistory.RealBuyNumber[indice]) / 10**7) if (tickerPresentData.RealBuyNumber-tickerHistory.RealBuyNumber[indice]) != 0 else nan
+            spDif = ceil((tickerPresentData.RealSellVolume-tickerHistory.RealSellVolume[indice]) * tickerPresentData.TodayPrice/\
+                    (tickerPresentData.RealSellNumber-tickerHistory.RealSellNumber[indice]) / 10**7) if (tickerPresentData.RealSellNumber-tickerHistory.RealSellNumber[indice]) != 0 else nan
 
             if isnan(bpDif) == 0 and isnan(spDif) == 0:
                 if bpDif != spDif:
@@ -1317,15 +1318,18 @@ class marketFilter:
         ax[1][1].bar(industryData.Time, realPowerDif, color= clrs, label= 'Real Power', width= barWidth)
         ax[1][1].axhline(log10(1.5))
         ax[1][1].axhline(-log10(1.5))  
-        ax[1][1].legend(loc= "upper right", prop={'size': labelSize})
+        rpMax = max(realPowerDif)
+        rpMin = min(realPowerDif)
+        limit = 1.1*max(max(abs(rpMin), abs(rpMax)), log10(1.5))
+        ax[1][1].set_ylim([-limit, limit])
+        ax[1][1].legend(loc= "upper left", prop={'size': labelSize})
         ax2 = ax[1][1].twinx()
         ax2.plot(industryData.Time, industryData.HeavyDealsPrc, label= 'SmartMoney Percentage')
         prcMax = max(industryData.HeavyDealsPrc)
         prcMin = min(industryData.HeavyDealsPrc)
-        startLim = min(-1.2*max(abs(prcMin), abs(prcMax)), -1)
-        stopLim = max(1.2*max(abs(prcMin), abs(prcMax)), 1)
-        ax2.set_ylim([startLim, stopLim])
-        ax2.legend(loc= "upper left", prop={'size': labelSize})
+        limit = 1.1*max(max(abs(prcMin), abs(prcMax)), 1)
+        ax2.set_ylim([-limit, limit])
+        ax2.legend(loc= "upper right", prop={'size': labelSize})
 
         today = datetime.datetime.now().date()
         startLim = datetime.datetime(today.year, today.month, today.day, 9, 0)
@@ -1448,7 +1452,7 @@ class marketTrend(marketFilter):
                     else:
                         print('Error sending market image')
 
-        if now % 900 < 5*60:
+        if now % 900 < 5*60 and now > 9*3600+4*60:
             for i in range(4):
                 if now - self.reportTime[i] > 10*60:
                     break
@@ -1486,8 +1490,8 @@ class marketTrend(marketFilter):
             heavyDealsValue = signaledIndustries[i][3]
             if heavyDealsPrc > 0:
                 industryName = signaledIndustries[i][0]
-                heavyDealsPrcStr = '<b>' +str(heavyDealsPrc) + '+ درصد</b>'
-                heavyDealsValueStr = '<b>' +str(heavyDealsValue) + '+ م</b>'
+                heavyDealsPrcStr = '<b>' +str(heavyDealsPrc) + '+ %</b>'
+                heavyDealsValueStr = '<b>' +str(heavyDealsValue) + '+ م</b>' if heavyDealsValue >= 0 else '<b>' +str(-heavyDealsValue) + '- م</b>'
                 rankChange = ''
                 if industryName in self.topHighPrc:
                     if i+1 < self.topHighPrc[industryName]:
@@ -1513,8 +1517,8 @@ class marketTrend(marketFilter):
             heavyDealsValue = signaledIndustries[i][3]
             if heavyDealsPrc < 0:
                 industryName = signaledIndustries[i][0]
-                heavyDealsPrcStr = '<b>' +str(-heavyDealsPrc) + '+ درصد</b>'
-                heavyDealsValueStr = '<b>' +str(-heavyDealsValue) + '+ م</b>'
+                heavyDealsPrcStr = '<b>' +str(-heavyDealsPrc) + '- %</b>'
+                heavyDealsValueStr = '<b>' +str(-heavyDealsValue) + '- م</b>' if heavyDealsValue < 0 else '<b>' +str(heavyDealsValue) + '+ م</b>'
                 rankChange = ''
                 if industryName in self.topLowPrc:
                     if i+1 < self.topLowPrc[industryName]:
@@ -1538,9 +1542,9 @@ class marketTrend(marketFilter):
             index = signaledIndustries[i][1]
             heavyDealsPrc = signaledIndustries[i][2]
             heavyDealsValue = signaledIndustries[i][3]
-            if heavyDealsPrc > 0:
+            if heavyDealsValue > 0:
                 industryName = signaledIndustries[i][0]
-                heavyDealsPrcStr = '<b>' +str(heavyDealsPrc) + '+ درصد</b>'
+                heavyDealsPrcStr = '<b>' +str(heavyDealsPrc) + '+ %</b>' if heavyDealsPrc >= 0 else '<b>' +str(-heavyDealsPrc) + '- %</b>'
                 heavyDealsValueStr = '<b>' +str(heavyDealsValue) + '+ م</b>'
                 rankChange = ''
                 if industryName in self.topHighValue:
@@ -1556,7 +1560,7 @@ class marketTrend(marketFilter):
         msg3 += '\n' + get_time()
         self.topHighValue = {}
         for i in range(len(signaledIndustries)): 
-            if signaledIndustries[i][2] > 0:
+            if signaledIndustries[i][3] > 0:
                 self.topHighValue[signaledIndustries[i][0]] = i+1
         # top Low value
         signaledIndustries.sort(key=lambda x: x[3])
@@ -1565,10 +1569,10 @@ class marketTrend(marketFilter):
             index = signaledIndustries[i][1]
             heavyDealsPrc = signaledIndustries[i][2]
             heavyDealsValue = signaledIndustries[i][3]
-            if heavyDealsPrc < 0:
+            if heavyDealsValue < 0:
                 industryName = signaledIndustries[i][0]
-                heavyDealsPrcStr = '<b>' +str(-heavyDealsPrc) + '+ درصد</b>'
-                heavyDealsValueStr = '<b>' +str(-heavyDealsValue) + '+ م</b>'
+                heavyDealsPrcStr = '<b>' +str(-heavyDealsPrc) + '- %</b>' if heavyDealsPrc < 0 else '<b>' +str(heavyDealsPrc) + '+ %</b>'
+                heavyDealsValueStr = '<b>' +str(-heavyDealsValue) + '- م</b>'
                 rankChange = ''
                 if industryName in self.topLowValue:
                     if i+1 < self.topLowValue[industryName]:
@@ -1583,7 +1587,7 @@ class marketTrend(marketFilter):
         msg4 += '\n' + get_time()
         self.topLowValue = {}
         for i in range(len(signaledIndustries)): 
-            if signaledIndustries[i][2] < 0:
+            if signaledIndustries[i][3] < 0:
                 self.topLowValue[signaledIndustries[i][0]] = i+1
         return [msg1, msg2, msg3, msg4]
 
