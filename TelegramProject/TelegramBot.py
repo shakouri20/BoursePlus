@@ -14,12 +14,13 @@ doroshtBinChatID = '-1001645245212'
 
 proxy = {'https': "socks5h://" + hostName + ":1080"} if useProxy else {}
 
-def send_message(chatID, message, replyMessageID= None):
+def send_message(chatID, message, replyMessageID= None, replyMarkup= None):
     url = 'https://api.telegram.org/' + token + '/sendMessage'
+    data = {'chat_id': chatID, 'text': message, 'parse_mode': 'HTML'}
     if replyMessageID != None:
-        data = {'chat_id': chatID, 'text': message, 'parse_mode': 'HTML', 'reply_to_message_id': replyMessageID}
-    else:
-        data = {'chat_id': chatID, 'text': message, 'parse_mode': 'HTML'} #, 'reply_markup': {'inline_keyboard': [[{'text': 'Hello', 'callback_data': 'Pressed'}]]}
+        data['reply_to_message_id'] = replyMessageID
+    if replyMarkup != None:
+        data['reply_markup'] = replyMarkup #{'inline_keyboard': [[{'text': 'Hello', 'callback_data': 'Pressed'}]]}
 
     for _ in range(2):
         try:

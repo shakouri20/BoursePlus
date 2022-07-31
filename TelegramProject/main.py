@@ -69,72 +69,68 @@ class filterPlus:
     def run(self):
 
         try:
-            nowObj = datetime.datetime.now()
-            now = nowObj.hour*3600 + nowObj.minute*60 + nowObj.second
+            with self.lock:
+                
+                nowObj = datetime.datetime.now()
+                now = nowObj.hour*3600 + nowObj.minute*60 + nowObj.second
 
-            if self.startTime-10*60 < now < self.endTime and nowObj.weekday() not in [3, 4] or self.dataReceivedValidation == 0 or self.dataInitTime == 0:
+                if self.startTime-10*60 < now < self.endTime and nowObj.weekday() not in [3, 4] or self.dataReceivedValidation == 0 or self.dataInitTime == 0:
 
-                try:
+                    try:
 
-                    if now - self.dataInitTime > 120:
-                        output = get_marketWatch_data_tse_method(init= 1)
-                        self.dataInitTime = now
-                    else:
-                        output = get_marketWatch_data_tse_method(heven= self.heven, refid= self.refid)
-                    mwData = output['Data']
-                    self.heven = output['Heven']
-                    self.refid = output['Refid']
-                    ctData = get_last_clientType_Data()
-                    with self.lock:
+                        if now - self.dataInitTime > 120:
+                            output = get_marketWatch_data_tse_method(init= 1)
+                            self.dataInitTime = now
+                        else:
+                            output = get_marketWatch_data_tse_method(heven= self.heven, refid= self.refid)
+                        mwData = output['Data']
+                        self.heven = output['Heven']
+                        self.refid = output['Refid']
+                        ctData = get_last_clientType_Data()
                         self.dataHandler.update_data(mwData, ctData)
-                    self.dataReceivedValidation = 1
-                    
-                except:
-                    print_error('Error in data part')
-                    self.dataReceivedValidation = 0
-            
-            if self.dataReceivedValidation:
+                        self.dataReceivedValidation = 1
+                        
+                    except:
+                        print_error('Error in data part')
+                        self.dataReceivedValidation = 0
+                
+                if self.dataReceivedValidation:
 
-                try:
-                    print('FiltersRun', threading.active_count())
-                    self.run_filters()
-                except:
-                    print_error('Error in run_filters')
+                    try:
+                        print('FiltersRun', threading.active_count())
+                        self.positiveRange.run_filter()
+                        self.heavyTrades.run_filter()
+                    except:
+                        print_error('Error in run_filters')
 
-            if self.startTime-10*60 < now < self.endTime and nowObj.weekday() not in [3, 4]:
-                timer = threading.Timer(1, self.run)
-            else:
-                timer = threading.Timer(30, self.run)
-            timer.start()
+                if self.startTime-10*60 < now < self.endTime and nowObj.weekday() not in [3, 4]:
+                    timer = threading.Timer(1, self.run)
+                else:
+                    timer = threading.Timer(30, self.run)
+                timer.start()
 
         except:
             print_error('Unusual Error in run_filters')
             timer = threading.Timer(1, self.run)
-            timer.start()
-
-    def run_filters(self):
-
-        with self.lock:
-            self.positiveRange.run_filter()
-            self.heavyTrades.run_filter()
+            timer.start()   
 
     def update_history_10s(self):
 
         try:
-            nowObj = datetime.datetime.now()
-            now = nowObj.hour*3600 + nowObj.minute*60 + nowObj.second
-            if self.startTime-10*60 < now < self.endTime and nowObj.weekday() not in [3, 4]:
-                if self.dataReceivedValidation:
-                    with self.lock:
+            with self.lock:
+                nowObj = datetime.datetime.now()
+                now = nowObj.hour*3600 + nowObj.minute*60 + nowObj.second
+                if self.startTime-10*60 < now < self.endTime and nowObj.weekday() not in [3, 4]:
+                    if self.dataReceivedValidation:
                         self.dataHandler.update_history('10s')
-                    timer = threading.Timer(10, self.update_history_10s)
-                    timer.start()
+                        timer = threading.Timer(10, self.update_history_10s)
+                        timer.start()
+                    else:
+                        timer = threading.Timer(3, self.update_history_10s)
+                        timer.start()
                 else:
-                    timer = threading.Timer(3, self.update_history_10s)
+                    timer = threading.Timer(30, self.update_history_10s)
                     timer.start()
-            else:
-                timer = threading.Timer(30, self.update_history_10s)
-                timer.start()
         except:
             print_error('Unusual Error in 10s')
             timer = threading.Timer(3, self.update_history_10s)
@@ -143,20 +139,20 @@ class filterPlus:
     def update_history_1m(self):
 
         try:
-            nowObj = datetime.datetime.now()
-            now = nowObj.hour*3600 + nowObj.minute*60 + nowObj.second
-            if self.startTime-10*60 < now < self.endTime and nowObj.weekday() not in [3, 4]:
-                if self.dataReceivedValidation:
-                    with self.lock:
+            with self.lock:
+                nowObj = datetime.datetime.now()
+                now = nowObj.hour*3600 + nowObj.minute*60 + nowObj.second
+                if self.startTime-10*60 < now < self.endTime and nowObj.weekday() not in [3, 4]:
+                    if self.dataReceivedValidation:
                         self.dataHandler.update_history('1m')
-                    timer = threading.Timer(60, self.update_history_1m)
-                    timer.start()
+                        timer = threading.Timer(60, self.update_history_1m)
+                        timer.start()
+                    else:
+                        timer = threading.Timer(3, self.update_history_1m)
+                        timer.start()
                 else:
-                    timer = threading.Timer(3, self.update_history_1m)
+                    timer = threading.Timer(30, self.update_history_1m)
                     timer.start()
-            else:
-                timer = threading.Timer(30, self.update_history_1m)
-                timer.start()
         except:
             print_error('Unusual Error in 1m')
             timer = threading.Timer(3, self.update_history_1m)
@@ -165,20 +161,20 @@ class filterPlus:
     def run_market_filters(self):
 
         try:
-            nowObj = datetime.datetime.now()
-            now = nowObj.hour*3600 + nowObj.minute*60 + nowObj.second
-            if self.startTime < now < self.endTime+2*60 and nowObj.weekday() not in [3, 4]:
-                if self.dataReceivedValidation:
-                    with self.lock:
+            with self.lock:
+                nowObj = datetime.datetime.now()
+                now = nowObj.hour*3600 + nowObj.minute*60 + nowObj.second
+                if self.startTime < now < self.endTime+2*60 and nowObj.weekday() not in [3, 4]:
+                    if self.dataReceivedValidation:
                         self.marketManager.run_filters()
-                    timer = threading.Timer(60, self.run_market_filters)
-                    timer.start()
+                        timer = threading.Timer(60, self.run_market_filters)
+                        timer.start()
+                    else:
+                        timer = threading.Timer(3, self.run_market_filters)
+                        timer.start()
                 else:
-                    timer = threading.Timer(3, self.run_market_filters)
+                    timer = threading.Timer(30, self.run_market_filters)
                     timer.start()
-            else:
-                timer = threading.Timer(30, self.run_market_filters)
-                timer.start()
         except:
             print_error('Unusual Error in marketwatch')
             timer = threading.Timer(3, self.run_market_filters)
@@ -187,17 +183,12 @@ class filterPlus:
     def initialize_today_objects(self):
 
         try:
-
-            nowObj = datetime.datetime.now()
-            now = nowObj.hour*3600 + nowObj.minute*60 + nowObj.second
-
-            if self.firstTime or 28800 < now < 29400 and nowObj.weekday() not in [3, 4]: # 28800 (08:00) 29400 (08:10) 
-
-                with self.lock:
-
+            with self.lock:
+                nowObj = datetime.datetime.now()
+                now = nowObj.hour*3600 + nowObj.minute*60 + nowObj.second
+                if self.firstTime or 28800 < now < 29400 and nowObj.weekday() not in [3, 4]: # 28800 (08:00) 29400 (08:10) 
                     if not self.firstTime:
                         write_offline_data_stock()
-
                     self.firstTime = 0
                     self.dataInitTime = 0
                     self.heven = 0
@@ -213,13 +204,10 @@ class filterPlus:
 
                     timer = threading.Timer(15*60, self.initialize_today_objects)
                     timer.start()
-
                     print('Today Objects initialized.')
-
-            else:
-                timer = threading.Timer(60, self.initialize_today_objects)
-                timer.start()
-
+                else:
+                    timer = threading.Timer(60, self.initialize_today_objects)
+                    timer.start()
         except:
             print_error('Unusual Error in initialize_today_objects:')
             timer = threading.Timer(60, self.initialize_today_objects)
@@ -228,36 +216,58 @@ class filterPlus:
     def telegram_assistant(self):
 
         try:
+            with self.lock:
+                data = get_updates(self.telegramLastUpdateID)['result']
+                for i in range(len(data)):
+                    item = data[i]
+                    if item['update_id'] > self.telegramLastUpdateID:
+                        if 'message' in item:
+                            if item['message']['chat']['id'] in [int(myTelegramAcountChatID), int(filterPlusGroupChatID)] and int(datetime.datetime.now().timestamp())-item['message']['date'] < 10:
+                                try:
+                                    if item['message']['text'] in ['/industries', '/industries@tseFilterSignalbot']:
+                                        industryChoices = []
+                                        subGroup = []
+                                        for groupName in self.marketManager.groups:
+                                            groupNameMod = ''.join([char if char != '_' else ' ' for char in groupName])
+                                            if len(subGroup) < 4:
+                                                subGroup.append({'text': groupNameMod, 'callback_data': groupName})
+                                            if len(subGroup) == 4:
+                                                industryChoices.append(subGroup)
+                                                subGroup = []
+                                        if len(subGroup) != 0:
+                                                industryChoices.append(subGroup)
+                                        send_message(str(item['message']['chat']['id']), 'صنعت مورد نظر را انتخاب کنید:', replyMarkup= {'inline_keyboard': industryChoices})
+                                    else:    
+                                        for ID in self.tickersInfo:
+                                            if self.tickersInfo[ID]['FarsiTicker'] == item['message']['text']:
+                                                message = self.positiveRange.create_general_telegram_message(ID) + get_time()
+                                                send_message(str(item['message']['chat']['id']), message)
+                                                break
+                                        else:
+                                            if item['message']['chat']['id'] == int(myTelegramAcountChatID):
+                                                try:
+                                                    try:
+                                                        send_message(myTelegramAcountChatID, str(eval(str(item['message']['text']))))
+                                                    except:
+                                                        exec(str(item['message']['text']))
+                                                except:
+                                                    print_error('Error in telegram eval:')
 
-            data = get_updates(self.telegramLastUpdateID)['result']
+                                except:
+                                    print_error('Error in telegram_assistant:')
+                                    pass
+                        if 'callback_query' in item:
+                            item = item['callback_query']
+                            if item['message']['chat']['id'] in [int(myTelegramAcountChatID), int(filterPlusGroupChatID)]: #and int(datetime.datetime.now().timestamp())-item['message']['date'] < 10:
+                                try:
+                                    msg = self.marketManager.marketTrend.create_general_telegram_message(item['data'])
+                                    send_photo(str(item['message']['chat']['id']), 'market.png',  msg)
+                                except:
+                                    print_error('Error in sending indusrty chart:')         
+                        self.telegramLastUpdateID = data[i]['update_id']
 
-            for i in range(len(data)):
-                item = data[i]
-                if item['update_id'] > self.telegramLastUpdateID and 'message' in item:
-                    if item['message']['chat']['id'] in [int(myTelegramAcountChatID), int(filterPlusGroupChatID)] and int(datetime.datetime.now().timestamp())-item['message']['date'] < 10:
-                        try:
-                            for ID in self.tickersInfo:
-                                if self.tickersInfo[ID]['FarsiTicker'] == item['message']['text']:
-                                    message = self.positiveRange.create_general_telegram_message(ID) + get_time()
-                                    send_message(str(item['message']['chat']['id']), message, False)
-                                    break
-                            else:
-                                if item['message']['chat']['id'] == int(myTelegramAcountChatID):
-                                    try:
-                                        try:
-                                            send_message(myTelegramAcountChatID, str(eval(str(item['message']['text']))), False)
-                                        except:
-                                            exec(str(item['message']['text']))
-                                    except:
-                                        print_error('Error in telegram eval:')
-
-                        except:
-                            print_error('Error in telegram_assistant:')
-                            pass
-                    self.telegramLastUpdateID = item['update_id']
-
-            timer = threading.Timer(2, self.telegram_assistant)
-            timer.start()
+                timer = threading.Timer(2, self.telegram_assistant)
+                timer.start()
 
         except:
             print_error('Unusual Error in telegram_assistant data:')
@@ -379,10 +389,12 @@ class filterParent:
         else:
             spStr = '-'
 
-        if realMoney >= 0:
+        if realMoney > 0:
             realMoneyStr = '(' + str(realMoney) + '+\U0001f7e2)'
-        else:
+        elif realMoney < 0:
             realMoneyStr = '(' + str(-realMoney) + '-🔴)'
+        else:
+            realMoneyStr = '(0)'
 
         ctDifStr = ''
 
@@ -488,14 +500,14 @@ class filterParent:
         if isnan(kijunsenLongDif): kijunsenLongDifStr = '-'
 
         heavyDealsPrc = max(min(int((self.main.heavyTrades.tickersData[ID]['BuyVolume']-self.main.heavyTrades.tickersData[ID]['SellVolume'])/(tickerPresentData.RealBuyVolume+tickerPresentData.CorporateBuyVolume)*100), 100), -100)
-        heavyDealsValue = int((self.main.heavyTrades.tickersData[ID]['BuyVolume']-self.main.heavyTrades.tickersData[ID]['SellVolume'])*tickerPresentData.LastPrice/10**7)
+        heavyDealsValue = round((self.main.heavyTrades.tickersData[ID]['BuyVolume']-self.main.heavyTrades.tickersData[ID]['SellVolume'])*tickerPresentData.LastPrice/10**10, 2)
         
         if heavyDealsPrc > 0:
-            heavyDealsPrcStr = str(heavyDealsPrc) + '+ درصد ➖ ' +  str(heavyDealsValue) + '+ م \U0001f7e2'
+            heavyDealsPrcStr = str(heavyDealsPrc) + '+ % ➖ ' +  str(heavyDealsValue) + '+ م \U0001f7e2'
         elif heavyDealsPrc < 0:
-            heavyDealsPrcStr = str(-heavyDealsPrc) + '- درصد ➖ ' + str(-heavyDealsValue) + '- م 🔴'
+            heavyDealsPrcStr = str(-heavyDealsPrc) + '- % ➖ ' + str(-heavyDealsValue) + '- م 🔴'
         else:
-            heavyDealsPrcStr = str(heavyDealsPrc) + ' درصد'
+            heavyDealsPrcStr = str(heavyDealsPrc) + ' %'
         
 
         msg = '📈 #' + self.main.tickersInfo[ID]['FarsiTicker'] + '  -  ' + self.main.tickersInfo[ID]['FarsiName'] +'\n\n' +\
@@ -511,9 +523,9 @@ class filterParent:
             ctDifStr + '\n' + \
             'خرید درشت / فروش درشت:\n' +\
             '\U0001f7e2 ' + str(self.main.heavyTrades.tickersData[ID]['BuyNumber']) + ' بار  <b>ا</b>  ' + \
-            str(int(self.main.heavyTrades.tickersData[ID]['BuyVolume']/tickerPresentData.RealBuyVolume*100)) + ' درصد' + '  ➖  ' +\
+            str(int(self.main.heavyTrades.tickersData[ID]['BuyVolume']/tickerPresentData.RealBuyVolume*100)) + ' %' + '  ➖  ' +\
             '🔴 ' + str(self.main.heavyTrades.tickersData[ID]['SellNumber']) + ' بار  <b>ا</b>  ' + \
-            str(int(self.main.heavyTrades.tickersData[ID]['SellVolume']/tickerPresentData.RealSellVolume*100)) + ' درصد\n' +\
+            str(int(self.main.heavyTrades.tickersData[ID]['SellVolume']/tickerPresentData.RealSellVolume*100)) + ' %\n' +\
             'برآیند معاملات بزرگ:  ' + heavyDealsPrcStr + '\n\n'+\
             'ایچیموکو:\n' +\
             'تنکانسن / کیجنسن:  ' + tenkansenDifStr + tenkansenReactionStr + '  <b>ا</b>  ' + kijunsenDifStr + kijunsenReactionStr + '\n' +\
@@ -679,20 +691,20 @@ class heavyTrades(filterParent):
                                     msg += '\n احتمال کد به کد حقیقی به حقوقی!🔴\n'
 
                                 heavyDealsPrc = max(min(int((self.tickersData[ID]['BuyVolume']-self.tickersData[ID]['SellVolume'])/(tickerPresentData.RealBuyVolume+tickerPresentData.CorporateBuyVolume)*100), 100), -100)
-                                heavyDealsValue = int((self.tickersData[ID]['BuyVolume']-self.tickersData[ID]['SellVolume'])*tickerPresentData.LastPrice/10**7)
+                                heavyDealsValue = round((self.tickersData[ID]['BuyVolume']-self.tickersData[ID]['SellVolume'])*tickerPresentData.LastPrice/10**10, 2)
                                 
                                 if heavyDealsPrc > 0:
-                                    heavyDealsPrcStr = str(heavyDealsPrc) + '+ درصد ➖ ' +  str(heavyDealsValue) + '+ م \U0001f7e2'
+                                    heavyDealsPrcStr = str(heavyDealsPrc) + '+ % ➖ ' +  str(heavyDealsValue) + '+ م \U0001f7e2'
                                 elif heavyDealsPrc < 0:
-                                    heavyDealsPrcStr = str(-heavyDealsPrc) + '- درصد ➖ ' + str(-heavyDealsValue) + '- م 🔴'
+                                    heavyDealsPrcStr = str(-heavyDealsPrc) + '- % ➖ ' + str(-heavyDealsValue) + '- م 🔴'
                                 else:
                                     heavyDealsPrcStr = str(heavyDealsPrc)
                                 msg += '\nمجموع خریدهای درشت \U0001f7e2  ' +\
                                     str(self.tickersData[ID]['BuyNumber']) + ' بار  ➖ ' + \
-                                    str(int(self.tickersData[ID]['BuyVolume']/tickerPresentData.RealBuyVolume*100)) + ' درصد' + '\n' +\
+                                    str(int(self.tickersData[ID]['BuyVolume']/tickerPresentData.RealBuyVolume*100)) + ' %' + '\n' +\
                                     'مجموع فروش های درشت 🔴  ' +\
                                     str(self.tickersData[ID]['SellNumber']) + ' بار  ➖ ' + \
-                                    str(int(self.tickersData[ID]['SellVolume']/tickerPresentData.RealSellVolume*100)) + ' درصد' + '\n\n' +\
+                                    str(int(self.tickersData[ID]['SellVolume']/tickerPresentData.RealSellVolume*100)) + ' %' + '\n\n' +\
                                     'برآیند معاملات بزرگ:  ' + heavyDealsPrcStr + '\n\n'
                                 
                                 tickerPositiveRangeSignals: list[signal] = self.main.positiveRange.tickersData[ID]['Signals']
@@ -761,7 +773,7 @@ class heavyTrades(filterParent):
             heavyDealsValue = signaledTickers[i][2]
             if heavyDealsPrc > 0:
                 tickerName = signaledTickers[i][0]
-                heavyDealsPrcStr = '<b>' +str(heavyDealsPrc) + '+ درصد</b>'
+                heavyDealsPrcStr = '<b>' +str(heavyDealsPrc) + '+ %</b>'
                 heavyDealsValueStr = '<b>' +str(heavyDealsValue) + '+ م</b>'
                 rankChange = ''
                 if tickerName in self.topHighPrc:
@@ -787,7 +799,7 @@ class heavyTrades(filterParent):
             heavyDealsValue = signaledTickers[i][2]
             if heavyDealsPrc < 0:
                 tickerName = signaledTickers[i][0]
-                heavyDealsPrcStr = '<b>' +str(-heavyDealsPrc) + '- درصد</b>'
+                heavyDealsPrcStr = '<b>' +str(-heavyDealsPrc) + '- %</b>'
                 heavyDealsValueStr = '<b>' +str(-heavyDealsValue) + '- م</b>'
                 rankChange = ''
                 if tickerName in self.topLowPrc:
@@ -813,7 +825,7 @@ class heavyTrades(filterParent):
             heavyDealsValue = signaledTickers[i][2]
             if heavyDealsPrc > 0:
                 tickerName = signaledTickers[i][0]
-                heavyDealsPrcStr = '<b>' +str(heavyDealsPrc) + '+ درصد</b>'
+                heavyDealsPrcStr = '<b>' +str(heavyDealsPrc) + '+ %</b>'
                 heavyDealsValueStr = '<b>' +str(heavyDealsValue) + '+ م</b>'
                 rankChange = ''
                 if tickerName in self.topHighValue:
@@ -839,7 +851,7 @@ class heavyTrades(filterParent):
             heavyDealsValue = signaledTickers[i][2]
             if heavyDealsPrc < 0:
                 tickerName = signaledTickers[i][0]
-                heavyDealsPrcStr = '<b>' +str(-heavyDealsPrc) + '- درصد</b>'
+                heavyDealsPrcStr = '<b>' +str(-heavyDealsPrc) + '- %</b>'
                 heavyDealsValueStr = '<b>' +str(-heavyDealsValue) + '- م</b>'
                 rankChange = ''
                 if tickerName in self.topLowValue:
@@ -940,11 +952,20 @@ class positiveRange(filterParent):
                         lastPricePrcStr = '<b>' +str(lastPricePrc) + '+ \U0001f7e2</b>'
                     else:
                         lastPricePrcStr = '<b>' +str(-lastPricePrc) + '- 🔴</b>'
+                        heavyDealsPrc = max(min(int((self.main.heavyTrades.tickersData[ID]['BuyVolume']-self.main.heavyTrades.tickersData[ID]['SellVolume'])/(tickerPresentData.RealBuyVolume+tickerPresentData.CorporateBuyVolume)*100), 100), -100)
+                        heavyDealsValue = round((self.main.heavyTrades.tickersData[ID]['BuyVolume']-self.main.heavyTrades.tickersData[ID]['SellVolume'])*tickerPresentData.LastPrice/10**10, 2)
+                        if heavyDealsPrc > 0:
+                            heavyDealsPrcStr = str(heavyDealsPrc) + '+ % ➖ ' +  str(heavyDealsValue) + '+ م \U0001f7e2'
+                        elif heavyDealsPrc < 0:
+                            heavyDealsPrcStr = str(-heavyDealsPrc) + '- % ➖ ' + str(-heavyDealsValue) + '- م 🔴'
+                        else:
+                            heavyDealsPrcStr = str(heavyDealsPrc) + ' %'
                     signaledTickers.append([self.main.tickersInfo[ID]['FarsiTicker'],
                                             len(tickerSignals),
                                             tickerSignals[0].time,
                                             tickerPresentData.MaxPrice == tickerPresentData.MaxAllowedPrice,
-                                            lastPricePrcStr
+                                            lastPricePrcStr,
+                                            heavyDealsPrcStr
                                             ])
             except:
                 print_error('PositiveRange report ' + str(ID))
@@ -952,7 +973,7 @@ class positiveRange(filterParent):
         msg = '#گزارش امروز فیلتر رنج مثبت - حجم مشکوک:\n\n'
         for i in range(len(signaledTickers)):
             buyQueueStatus = '✅' if signaledTickers[i][3] else '❌'
-            msg += str(i+1) + '- #' + signaledTickers[i][0] + '➖' + signaledTickers[i][4]+ ' ➖ <b>' + str(signaledTickers[i][1]) + '</b> ➖ ' + buyQueueStatus + '\n'
+            msg += str(i+1) + '- #' + signaledTickers[i][0] + '➖' + signaledTickers[i][4]+ ' ➖ <b>' + str(signaledTickers[i][1]) + '</b> ➖ ' + buyQueueStatus + ' ➖ <b>' + signaledTickers[i][5] + '</b>\n'
         msg += '\n' + get_time()
         return msg
 
@@ -1214,84 +1235,89 @@ class marketFilter:
     def create_general_telegram_message(self, groupName):
 
         industryData: tickersGroup = self.manager.groups[groupName]
-        index = industryData.LastPricePrcAverage[-1]
-        trend = '<b>صعودی\U0001f7e2</b>' if self.manager.marketTrend.groupsData[groupName]['Trend'] else '<b>نزولی🔴</b>'
-        buyQueueTickersPrc = industryData.BuyQueueTickersPrc[-1]
-        sellQueueTickersPrc = industryData.SellQueueTickersPrc[-1]
-        realPowerKol = industryData.RealPowerKol[-1]
-        realPowerKolDif = industryData.RealPowerKolDif[-1]
-        realPowerHamvazn = industryData.RealPowerHamvazn[-1]
-        realPowerHamvaznDif = industryData.RealPowerHamvaznDif[-1]
-        realMoney = industryData.RealMoneyEntryValue[-1]
-        heavyBuysValue = industryData.HeavyBuysValue[-1]
-        heavySellsValue = industryData.HeavySellsValue[-1]
-        heavyDealsValue = round(heavyBuysValue-heavySellsValue, 1)
-        heavyDealsPrc = industryData.HeavyDealsPrc[-1]
 
-        if index >= 0:
-            indexStr = '<b>' +str(index) + '+ </b>\U0001f7e2'
-        else:
-            indexStr = '<b>' +str(-index) + '- </b>🔴'
+        if len(industryData.Time):
 
-        buyQueueTickersPrcStr = '<b>' +str(buyQueueTickersPrc) + '</b>'
-        
-        sellQueueTickersPrcStr = '<b>' +str(sellQueueTickersPrc) + '</b>'
-        
-        if realPowerKol >= 1:
-            realPowerKolStr = '<b>' +str(realPowerKol) + '+ </b>\U0001f7e2'
-        else:
-            realPowerKolStr = '<b>' +str(round(1/realPowerKol, 2)) + '- </b>🔴'
-        
-        if realPowerKolDif >= 1:
-            realPowerKolDifStr = '<b>' +str(realPowerKolDif) + '+ </b>\U0001f7e2'
-        else:
-            realPowerKolDifStr = '<b>' +str(round(1/realPowerKolDif, 2)) + '- </b>🔴'
+            index = industryData.LastPricePrcAverage[-1]
+            trend = '<b>صعودی\U0001f7e2</b>' if self.manager.marketTrend.groupsData[groupName]['Trend'] else '<b>نزولی🔴</b>'
+            buyQueueTickersPrc = industryData.BuyQueueTickersPrc[-1]
+            sellQueueTickersPrc = industryData.SellQueueTickersPrc[-1]
+            realPowerKol = industryData.RealPowerKol[-1]
+            realPowerKolDif = industryData.RealPowerKolDif[-1]
+            realPowerHamvazn = industryData.RealPowerHamvazn[-1]
+            realPowerHamvaznDif = industryData.RealPowerHamvaznDif[-1]
+            realMoney = industryData.RealMoneyEntryValue[-1]
+            heavyBuysValue = industryData.HeavyBuysValue[-1]
+            heavySellsValue = industryData.HeavySellsValue[-1]
+            heavyDealsValue = round(heavyBuysValue-heavySellsValue, 1)
+            heavyDealsPrc = industryData.HeavyDealsPrc[-1]
 
-        if realPowerHamvazn >= 1:
-            realPowerHamvaznStr = '<b>' +str(realPowerHamvazn) + '+ </b>\U0001f7e2'
-        else:
-            realPowerHamvaznStr = '<b>' +str(round(1/realPowerHamvazn, 2)) + '- </b>🔴'
-        
-        if realPowerHamvaznDif >= 1:
-            realPowerHamvaznDifStr = '<b>' +str(realPowerHamvaznDif) + '+ </b>\U0001f7e2'
-        else:
-            realPowerHamvaznDifStr = '<b>' +str(round(1/realPowerHamvaznDif, 2)) + '- </b>🔴'
-        
-        if realMoney >= 0:
-            realMoneyStr = '<b>' +str(realMoney) + '+ </b>\U0001f7e2'
-        else:
-            realMoneyStr = '<b>' +str(-realMoney) + '- </b>🔴'
-        
-        heavyBuysValueStr = '<b>' +str(heavyBuysValue) + '</b>'
-        heavySellsValueStr = '<b>' +str(heavySellsValue) + '</b>'
+            if index >= 0:
+                indexStr = '<b>' +str(index) + '+ </b>\U0001f7e2'
+            else:
+                indexStr = '<b>' +str(-index) + '- </b>🔴'
 
-        if heavyDealsValue > 0:
-            heavyDealsValueStr = '<b>' +str(heavyDealsValue) + '+ </b>\U0001f7e2'
-        elif heavyDealsValue < 0:
-            heavyDealsValueStr = '<b>' +str(-heavyDealsValue) + '- </b>🔴'
+            buyQueueTickersPrcStr = '<b>' +str(buyQueueTickersPrc) + '</b>'
+            
+            sellQueueTickersPrcStr = '<b>' +str(sellQueueTickersPrc) + '</b>'
+            
+            if realPowerKol >= 1:
+                realPowerKolStr = '<b>' +str(realPowerKol) + '+ </b>\U0001f7e2'
+            else:
+                realPowerKolStr = '<b>' +str(round(1/realPowerKol, 2)) + '- </b>🔴'
+            
+            if realPowerKolDif >= 1:
+                realPowerKolDifStr = '<b>' +str(realPowerKolDif) + '+ </b>\U0001f7e2'
+            else:
+                realPowerKolDifStr = '<b>' +str(round(1/realPowerKolDif, 2)) + '- </b>🔴'
+
+            if realPowerHamvazn >= 1:
+                realPowerHamvaznStr = '<b>' +str(realPowerHamvazn) + '+ </b>\U0001f7e2'
+            else:
+                realPowerHamvaznStr = '<b>' +str(round(1/realPowerHamvazn, 2)) + '- </b>🔴'
+            
+            if realPowerHamvaznDif >= 1:
+                realPowerHamvaznDifStr = '<b>' +str(realPowerHamvaznDif) + '+ </b>\U0001f7e2'
+            else:
+                realPowerHamvaznDifStr = '<b>' +str(round(1/realPowerHamvaznDif, 2)) + '- </b>🔴'
+            
+            if realMoney >= 0:
+                realMoneyStr = '<b>' +str(realMoney) + '+ </b>\U0001f7e2'
+            else:
+                realMoneyStr = '<b>' +str(-realMoney) + '- </b>🔴'
+            
+            heavyBuysValueStr = '<b>' +str(heavyBuysValue) + '</b>'
+            heavySellsValueStr = '<b>' +str(heavySellsValue) + '</b>'
+
+            if heavyDealsValue > 0:
+                heavyDealsValueStr = '<b>' +str(heavyDealsValue) + '+ </b>\U0001f7e2'
+            elif heavyDealsValue < 0:
+                heavyDealsValueStr = '<b>' +str(-heavyDealsValue) + '- </b>🔴'
+            else:
+                heavyDealsValueStr = '<b>0</b>'
+            
+            if heavyDealsPrc > 0:
+                heavyDealsPrcStr = '<b> ( ' +str(heavyDealsPrc) + '+ % \U0001f7e2 )</b>'
+            elif heavyDealsPrc < 0:
+                heavyDealsPrcStr = '<b> ( ' +str(-heavyDealsPrc) + '- % 🔴 )</b>'
+            else:
+                heavyDealsPrcStr = '<b> ( 0 % )</b>'
+            
+            msg = '📈 #' + groupName +'\n\n' +\
+            'شاخص:  ' + indexStr + '\n' +\
+            'ترند:  ' + trend + '\n' +\
+            'درصد صف خرید:  ' + buyQueueTickersPrcStr + '\n' +\
+            'درصد صف فروش:  ' + sellQueueTickersPrcStr + '\n' +\
+            'قدرت خریدار کل:  ' + realPowerKolStr + '\n' +\
+            'قدرت خریدار کل لحظه ای:  ' + realPowerKolDifStr + '\n' +\
+            'قدرت خریدار هم وزن:  ' + realPowerHamvaznStr + '\n' +\
+            'قدرت خریدار هم وزن لحظه ای:  ' + realPowerHamvaznDifStr + '\n' +\
+            'پول حقیقی:  ' + realMoneyStr + '\n' +\
+            'خرید درشت:  ' + heavyBuysValueStr + '\n' +\
+            'فروش درشت:  ' + heavySellsValueStr + '\n' +\
+            'برآیند معاملات بزرگ:  ' + heavyDealsValueStr + heavyDealsPrcStr + '\n\n'
         else:
-            heavyDealsValueStr = '<b>0</b>'
-        
-        if heavyDealsPrc > 0:
-            heavyDealsPrcStr = '<b> ( ' +str(heavyDealsPrc) + '+ درصد \U0001f7e2 )</b>'
-        elif heavyDealsPrc < 0:
-            heavyDealsPrcStr = '<b> ( ' +str(-heavyDealsPrc) + '- درصد 🔴 )</b>'
-        else:
-            heavyDealsPrcStr = '<b> ( 0 درصد )</b>'
-        
-        msg = '📈 #' + groupName +'\n\n' +\
-        'شاخص:  ' + indexStr + '\n' +\
-        'ترند:  ' + trend + '\n' +\
-        'درصد صف خرید:  ' + buyQueueTickersPrcStr + '\n' +\
-        'درصد صف فروش:  ' + sellQueueTickersPrcStr + '\n' +\
-        'قدرت خریدار کل:  ' + realPowerKolStr + '\n' +\
-        'قدرت خریدار کل لحظه ای:  ' + realPowerKolDifStr + '\n' +\
-        'قدرت خریدار هم وزن:  ' + realPowerHamvaznStr + '\n' +\
-        'قدرت خریدار هم وزن لحظه ای:  ' + realPowerHamvaznDifStr + '\n' +\
-        'پول حقیقی:  ' + realMoneyStr + '\n' +\
-        'خرید درشت:  ' + heavyBuysValueStr + '\n' +\
-        'فروش درشت:  ' + heavySellsValueStr + '\n' +\
-        'برآیند معاملات بزرگ:  ' + heavyDealsValueStr + heavyDealsPrcStr + '\n\n'
+            msg = groupName
 
         # create image
         fig, ax = plt.subplots(2, 2)
@@ -1313,20 +1339,22 @@ class marketFilter:
         ax[1][0].plot(industryData.Time, industryData.RealMoneyEntryValue, color= 'blue', label= 'Real Money')
         ax[1][0].legend(loc= "upper right", prop={'size': labelSize})
 
-        realPowerDif = [log10(item) for item in industryData.RealPowerHamvaznDif]
-        clrs = ['red' if (x < 0) else 'green' for x in realPowerDif]
-        ax[1][1].bar(industryData.Time, realPowerDif, color= clrs, label= 'Real Power', width= barWidth)
-        ax[1][1].axhline(log10(1.5))
-        ax[1][1].axhline(-log10(1.5))  
-        rpMax = max(realPowerDif)
-        rpMin = min(realPowerDif)
+        realPowerHamvaznDif = [log10(item) for item in industryData.RealPowerHamvaznDif]
+        realPowerKolDif = [log10(item) for item in industryData.RealPowerKolDif]
+        clrs = ['red' if (x < 0) else 'green' for x in realPowerHamvaznDif]
+        ax[1][1].bar(industryData.Time, realPowerHamvaznDif, color= clrs, width= barWidth)
+        ax[1][1].plot(industryData.Time, realPowerKolDif, color= 'black', label= 'Real Power')
+        ax[1][1].axhline(log10(1.5), linewidth= 0.7, color = 'orange')
+        ax[1][1].axhline(-log10(1.5), linewidth= 0.7, color = 'orange')  
+        rpMax = max(max(realPowerHamvaznDif), max(realPowerKolDif)) if len(realPowerHamvaznDif) else 0
+        rpMin = min(min(realPowerHamvaznDif), min(realPowerKolDif)) if len(realPowerHamvaznDif) else 0
         limit = 1.1*max(max(abs(rpMin), abs(rpMax)), log10(1.5))
         ax[1][1].set_ylim([-limit, limit])
         ax[1][1].legend(loc= "upper left", prop={'size': labelSize})
         ax2 = ax[1][1].twinx()
         ax2.plot(industryData.Time, industryData.HeavyDealsPrc, label= 'SmartMoney Percentage')
-        prcMax = max(industryData.HeavyDealsPrc)
-        prcMin = min(industryData.HeavyDealsPrc)
+        prcMax = max(industryData.HeavyDealsPrc) if len(industryData.HeavyDealsPrc) else 0
+        prcMin = min(industryData.HeavyDealsPrc) if len(industryData.HeavyDealsPrc) else 0
         limit = 1.1*max(max(abs(prcMin), abs(prcMax)), 1)
         ax2.set_ylim([-limit, limit])
         ax2.legend(loc= "upper right", prop={'size': labelSize})
