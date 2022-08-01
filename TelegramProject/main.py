@@ -673,7 +673,12 @@ class heavyTrades(filterParent):
                                 else:
                                     lastPricePrcStr = ' (' + str(-lastPricePrc) + '- 🔴)'
 
-                                msg = '📈 #' + self.main.tickersInfo[ID]['FarsiTicker'] + ' - ' + lastPricePrcStr +'\n\n'
+                                queueStatus = ''
+                                if tickerPresentData.LastPrice == tickerPresentData.MaxAllowedPrice and tickerPresentData.DemandPrice1 == tickerPresentData.MaxAllowedPrice:
+                                    queueStatus = ' - صف خرید'
+                                if tickerPresentData.LastPrice == tickerPresentData.MinAllowedPrice and tickerPresentData.SupplyPrice1 == tickerPresentData.MinAllowedPrice:
+                                    queueStatus = ' - صف فروش'
+                                msg = '📈 #' + self.main.tickersInfo[ID]['FarsiTicker'] + ' - ' + lastPricePrcStr + queueStatus + '\n\n'
 
                                 if RealBuyVolumeDif*tickerPresentData.TodayPrice >= ctValueLimit and RealBuyPercapita >= percapitaLimit:
                                     self.tickersData[ID]['BuyNumber'] += 1
@@ -757,7 +762,7 @@ class heavyTrades(filterParent):
                     else:
                         lastPricePrcStr = '<b>' +str(-lastPricePrc) + '- 🔴</b>'
                     heavyDealsPrc = int((self.tickersData[ID]['BuyVolume']-self.tickersData[ID]['SellVolume'])/(tickerPresentData.RealBuyVolume+tickerPresentData.CorporateBuyVolume)*100)
-                    heavyDealsValue = int((self.tickersData[ID]['BuyVolume']-self.tickersData[ID]['SellVolume'])*tickerPresentData.LastPrice/10**7)      
+                    heavyDealsValue = round((self.tickersData[ID]['BuyVolume']-self.tickersData[ID]['SellVolume'])*tickerPresentData.LastPrice/10**10, 2)      
                     signaledTickers.append([self.main.tickersInfo[ID]['FarsiTicker'],
                                             heavyDealsPrc,
                                             heavyDealsValue,
@@ -784,7 +789,7 @@ class heavyTrades(filterParent):
                     else:
                         rankChange = '⏺'
                 else:
-                    rankChange = '⬆️'
+                    rankChange = '➕'
                 msg1 += rankChange + '  #' + tickerName + '➖' + signaledTickers[i][3] + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
         msg1 += '\n' + get_time()
         self.topHighPrc = {}
@@ -810,7 +815,7 @@ class heavyTrades(filterParent):
                     else:
                         rankChange = '⏺'
                 else:
-                    rankChange = '⬆️'
+                    rankChange = '➕'
                 msg2 += rankChange + '  #' + tickerName + '➖' + signaledTickers[i][3] + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
         msg2 += '\n' + get_time()
         self.topLowPrc = {}
@@ -836,7 +841,7 @@ class heavyTrades(filterParent):
                     else:
                         rankChange = '⏺'
                 else:
-                    rankChange = '⬆️'
+                    rankChange = '➕'
                 msg3 += rankChange + '  #' + tickerName + '➖' + signaledTickers[i][3] + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
         msg3 += '\n' + get_time()
         self.topHighValue = {}
@@ -862,7 +867,7 @@ class heavyTrades(filterParent):
                     else:
                         rankChange = '⏺'
                 else:
-                    rankChange = '⬆️'
+                    rankChange = '➕'
                 msg4 += rankChange + '  #' + tickerName + '➖' + signaledTickers[i][3] + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
         msg4 += '\n' + get_time()
         self.topLowValue = {}
@@ -952,14 +957,14 @@ class positiveRange(filterParent):
                         lastPricePrcStr = '<b>' +str(lastPricePrc) + '+ \U0001f7e2</b>'
                     else:
                         lastPricePrcStr = '<b>' +str(-lastPricePrc) + '- 🔴</b>'
-                        heavyDealsPrc = max(min(int((self.main.heavyTrades.tickersData[ID]['BuyVolume']-self.main.heavyTrades.tickersData[ID]['SellVolume'])/(tickerPresentData.RealBuyVolume+tickerPresentData.CorporateBuyVolume)*100), 100), -100)
-                        heavyDealsValue = round((self.main.heavyTrades.tickersData[ID]['BuyVolume']-self.main.heavyTrades.tickersData[ID]['SellVolume'])*tickerPresentData.LastPrice/10**10, 2)
-                        if heavyDealsPrc > 0:
-                            heavyDealsPrcStr = str(heavyDealsPrc) + '+ % ➖ ' +  str(heavyDealsValue) + '+ م \U0001f7e2'
-                        elif heavyDealsPrc < 0:
-                            heavyDealsPrcStr = str(-heavyDealsPrc) + '- % ➖ ' + str(-heavyDealsValue) + '- م 🔴'
-                        else:
-                            heavyDealsPrcStr = str(heavyDealsPrc) + ' %'
+                    heavyDealsPrc = max(min(int((self.main.heavyTrades.tickersData[ID]['BuyVolume']-self.main.heavyTrades.tickersData[ID]['SellVolume'])/(tickerPresentData.RealBuyVolume+tickerPresentData.CorporateBuyVolume)*100), 100), -100)
+                    heavyDealsValue = round((self.main.heavyTrades.tickersData[ID]['BuyVolume']-self.main.heavyTrades.tickersData[ID]['SellVolume'])*tickerPresentData.LastPrice/10**10, 2)
+                    if heavyDealsPrc > 0:
+                        heavyDealsPrcStr = str(heavyDealsPrc) + '+ % ➖ ' +  str(heavyDealsValue) + '+ م \U0001f7e2'
+                    elif heavyDealsPrc < 0:
+                        heavyDealsPrcStr = str(-heavyDealsPrc) + '- % ➖ ' + str(-heavyDealsValue) + '- م 🔴'
+                    else:
+                        heavyDealsPrcStr = str(heavyDealsPrc) + ' %'
                     signaledTickers.append([self.main.tickersInfo[ID]['FarsiTicker'],
                                             len(tickerSignals),
                                             tickerSignals[0].time,
@@ -990,23 +995,23 @@ class marketManager:
 
         try: self.groups['زراعت'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [1], IPO= 0)['ID']) 
         except: pass
-        try: self.groups['استخراج_کانه_های_فلزی'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [4], IPO= 0)['ID']) 
+        try: self.groups['استخراج_کانه_فلزی'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [4], IPO= 0)['ID']) 
         except: pass
-        try: self.groups['فرآورده_های_نفتی'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [11], IPO= 0)['ID'])
+        try: self.groups['پالایشگاهی'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [11], IPO= 0)['ID'])
         except: pass
-        try: self.groups['لاستیک_و_پلاستیک'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [12], IPO= 0)['ID'])
+        try: self.groups['لاستیک'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [12], IPO= 0)['ID'])
         except: pass
         try: self.groups['فلزات_اساسی'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [14], IPO= 0)['ID']) 
         except: pass
-        try: self.groups['ساخت_محصولات_فلزی'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [15], IPO= 0)['ID'])   
+        try: self.groups['ساخت_فلزی'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [15], IPO= 0)['ID'])   
         except: pass
-        try: self.groups['ماشین_آلات_و_تجهیزات'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [16], IPO= 0)['ID'])   
+        try: self.groups['ماشین_آلات'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [16], IPO= 0)['ID'])   
         except: pass
-        try: self.groups['دستگاه_های_برقی'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [17], IPO= 0)['ID']) 
+        try: self.groups['دستگاه_برقی'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [17], IPO= 0)['ID']) 
         except: pass
         try: self.groups['فراکاب'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [41], IPO= 0)['ID']) 
         except: pass
-        try: self.groups['خودرو_و_قطعات'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [19], IPO= 0)['ID'])
+        try: self.groups['خودرویی'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [19], IPO= 0)['ID'])
         except: pass
         try: self.groups['قند_و_شکر'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [20], IPO= 0)['ID']) 
         except: pass
@@ -1018,7 +1023,7 @@ class marketManager:
         except: pass
         try: self.groups['شیمیایی'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [25], IPO= 0)['ID']) 
         except: pass
-        try: self.groups['کاشی_و_سرامیک'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [29], IPO= 0)['ID'])
+        try: self.groups['کاشی'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [29], IPO= 0)['ID'])
         except: pass
         try: self.groups['سیمانی'] = tickersGroup(ticker_repo().read_list_of_tickers(tickerTypes = [1], industryTypes= [30], IPO= 0)['ID']) 
         except: pass
@@ -1324,26 +1329,26 @@ class marketFilter:
         labelSize = 6
         period = 60
         barWidth = 0.00001 * period
-        ax[0][0].plot(industryData.Time, industryData.LastPricePrcAverage, label= 'Present Index')
-        ax[0][0].plot(industryData.Time, industryData.TodayPricePrcAverage, label= 'Total Index')
+        ax[0][0].plot(industryData.Time, industryData.LastPricePrcAverage, label= 'Present Index', linewidth= 0.8, color= 'blue')
+        ax[0][0].plot(industryData.Time, industryData.TodayPricePrcAverage, label= 'Total Index', linewidth= 0.8, color= 'orange')
         ax[0][0].legend(loc= "upper right", prop={'size': labelSize})
 
-        ax[0][1].plot(industryData.Time, industryData.PositiveTickersPrc, label= 'Positive', color= 'blue')
-        ax[0][1].plot(industryData.Time, industryData.BuyQueueTickersPrc, label= 'Buy Queue', color= 'green')
-        ax[0][1].plot(industryData.Time, industryData.SellQueueTickersPrc, label= 'Sell Queue', color= 'red')
+        ax[0][1].plot(industryData.Time, industryData.PositiveTickersPrc, label= 'Positive', color= 'blue', linewidth= 0.8)
+        ax[0][1].plot(industryData.Time, industryData.BuyQueueTickersPrc, label= 'Buy Queue', color= 'green', linewidth= 0.8)
+        ax[0][1].plot(industryData.Time, industryData.SellQueueTickersPrc, label= 'Sell Queue', color= 'red', linewidth= 0.8)
         ax[0][1].legend(loc= "upper right", prop={'size': labelSize})
 
         heavyDealsValue = [industryData.HeavyBuysValue[i]-industryData.HeavySellsValue[i] for i in range(len(industryData.Time))]
         clrs = ['red' if (x < 0) else 'green' for x in heavyDealsValue]
         ax[1][0].bar(industryData.Time, heavyDealsValue, color= clrs, label= 'Smart Money', width= barWidth)
-        ax[1][0].plot(industryData.Time, industryData.RealMoneyEntryValue, color= 'blue', label= 'Real Money')
+        ax[1][0].plot(industryData.Time, industryData.RealMoneyEntryValue, color= 'blue', label= 'Real Money', linewidth= 0.8)
         ax[1][0].legend(loc= "upper right", prop={'size': labelSize})
 
         realPowerHamvaznDif = [log10(item) for item in industryData.RealPowerHamvaznDif]
         realPowerKolDif = [log10(item) for item in industryData.RealPowerKolDif]
         clrs = ['red' if (x < 0) else 'green' for x in realPowerHamvaznDif]
         ax[1][1].bar(industryData.Time, realPowerHamvaznDif, color= clrs, width= barWidth)
-        ax[1][1].plot(industryData.Time, realPowerKolDif, color= 'black', label= 'Real Power')
+        ax[1][1].plot(industryData.Time, realPowerKolDif, color= 'black', label= 'Real Power', linewidth= 0.8)
         ax[1][1].axhline(log10(1.5), linewidth= 0.7, color = 'orange')
         ax[1][1].axhline(-log10(1.5), linewidth= 0.7, color = 'orange')  
         rpMax = max(max(realPowerHamvaznDif), max(realPowerKolDif)) if len(realPowerHamvaznDif) else 0
@@ -1352,7 +1357,7 @@ class marketFilter:
         ax[1][1].set_ylim([-limit, limit])
         ax[1][1].legend(loc= "upper left", prop={'size': labelSize})
         ax2 = ax[1][1].twinx()
-        ax2.plot(industryData.Time, industryData.HeavyDealsPrc, label= 'SmartMoney Percentage')
+        ax2.plot(industryData.Time, industryData.HeavyDealsPrc, label= 'SmartMoney Percentage', linewidth= 0.8, color= 'blue')
         prcMax = max(industryData.HeavyDealsPrc) if len(industryData.HeavyDealsPrc) else 0
         prcMin = min(industryData.HeavyDealsPrc) if len(industryData.HeavyDealsPrc) else 0
         limit = 1.1*max(max(abs(prcMin), abs(prcMax)), 1)
@@ -1452,14 +1457,14 @@ class marketTrend(marketFilter):
                 changeLimit = min(self.manager.groups['کل_بازار'].TickersNumber[-1] / industryData.TickersNumber[-1] * 0.1, 0.5)
 
                 if self.groupsData[groupName]['Trend'] == False:
-                    minIndex = min(industryData.LastPricePrcAverage[-15:])
+                    minIndex = min(industryData.LastPricePrcAverage[-30:])
                     if industryData.LastPricePrcAverage[-1] > minIndex + changeLimit and industryData.LastPricePrcAverage[-1] > indexAvg:
                         self.groupsData[groupName]['Trend'] = True
                         trendChange = True
                         print('up')
 
                 else:
-                    maxIndex = max(industryData.LastPricePrcAverage[-15:])
+                    maxIndex = max(industryData.LastPricePrcAverage[-30:])
                     if industryData.LastPricePrcAverage[-1] < maxIndex - changeLimit and industryData.LastPricePrcAverage[-1] < indexAvg:
                         self.groupsData[groupName]['Trend'] = False
                         trendChange = True
@@ -1529,7 +1534,7 @@ class marketTrend(marketFilter):
                     else:
                         rankChange = '⏺'
                 else:
-                    rankChange = '⬆️'
+                    rankChange = '➕'
                 msg1 += rankChange + ' #' + industryName + '➖' + index + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
         msg1 += '\n' + get_time()
         self.topHighPrc = {}
@@ -1556,7 +1561,7 @@ class marketTrend(marketFilter):
                     else:
                         rankChange = '⏺'
                 else:
-                    rankChange = '⬆️'
+                    rankChange = '➕'
                 msg2 += rankChange + ' #' + industryName + '➖' + index + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
         msg2 += '\n' + get_time()
         self.topLowPrc = {}
@@ -1583,7 +1588,7 @@ class marketTrend(marketFilter):
                     else:
                         rankChange = '⏺'
                 else:
-                    rankChange = '⬆️'
+                    rankChange = '➕'
                 msg3 += rankChange + ' #' + industryName + '➖' + index + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
         msg3 += '\n' + get_time()
         self.topHighValue = {}
@@ -1610,7 +1615,7 @@ class marketTrend(marketFilter):
                     else:
                         rankChange = '⏺'
                 else:
-                    rankChange = '⬆️'
+                    rankChange = '➕'
                 msg4 += rankChange + ' #' + industryName + '➖' + index + '➖' + heavyDealsPrcStr + '➖' + heavyDealsValueStr + '\n'
         msg4 += '\n' + get_time()
         self.topLowValue = {}
