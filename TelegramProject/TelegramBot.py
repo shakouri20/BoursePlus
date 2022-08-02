@@ -39,7 +39,7 @@ def send_photo(chatID, filePath, caption):
 
     for _ in range(3):
         try:
-            response = requests.post(url, data= data, proxies= proxy, files= file, timeout= 5)
+            response = requests.post(url, data= data, proxies= proxy, files= file, timeout= 10)
             data = json.loads(response.text)
             if data['ok']:
                 return True

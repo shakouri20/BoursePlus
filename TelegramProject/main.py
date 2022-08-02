@@ -68,6 +68,9 @@ class filterPlus:
 
     def run(self):
 
+        print('======================')
+        print(datetime.datetime.now().strftime("%H:%M:%S"))
+
         try:
             with self.lock:
                 
@@ -761,7 +764,7 @@ class heavyTrades(filterParent):
                         lastPricePrcStr = '<b>' +str(lastPricePrc) + '+ \U0001f7e2</b>'
                     else:
                         lastPricePrcStr = '<b>' +str(-lastPricePrc) + '- 🔴</b>'
-                    heavyDealsPrc = int((self.tickersData[ID]['BuyVolume']-self.tickersData[ID]['SellVolume'])/(tickerPresentData.RealBuyVolume+tickerPresentData.CorporateBuyVolume)*100)
+                    heavyDealsPrc = max(min(int((self.tickersData[ID]['BuyVolume']-self.tickersData[ID]['SellVolume'])/(tickerPresentData.RealBuyVolume+tickerPresentData.CorporateBuyVolume)*100), 100), -100)
                     heavyDealsValue = round((self.tickersData[ID]['BuyVolume']-self.tickersData[ID]['SellVolume'])*tickerPresentData.LastPrice/10**10, 2)      
                     signaledTickers.append([self.main.tickersInfo[ID]['FarsiTicker'],
                                             heavyDealsPrc,
@@ -1331,18 +1334,18 @@ class marketFilter:
         barWidth = 0.00001 * period
         ax[0][0].plot(industryData.Time, industryData.LastPricePrcAverage, label= 'Present Index', linewidth= 0.8, color= 'blue')
         ax[0][0].plot(industryData.Time, industryData.TodayPricePrcAverage, label= 'Total Index', linewidth= 0.8, color= 'orange')
-        ax[0][0].legend(loc= "upper right", prop={'size': labelSize})
+        ax[0][0].legend(prop={'size': labelSize}) #loc= "upper right", 
 
         ax[0][1].plot(industryData.Time, industryData.PositiveTickersPrc, label= 'Positive', color= 'blue', linewidth= 0.8)
         ax[0][1].plot(industryData.Time, industryData.BuyQueueTickersPrc, label= 'Buy Queue', color= 'green', linewidth= 0.8)
         ax[0][1].plot(industryData.Time, industryData.SellQueueTickersPrc, label= 'Sell Queue', color= 'red', linewidth= 0.8)
-        ax[0][1].legend(loc= "upper right", prop={'size': labelSize})
+        ax[0][1].legend(prop={'size': labelSize}) #loc= "upper right", 
 
         heavyDealsValue = [industryData.HeavyBuysValue[i]-industryData.HeavySellsValue[i] for i in range(len(industryData.Time))]
         clrs = ['red' if (x < 0) else 'green' for x in heavyDealsValue]
         ax[1][0].bar(industryData.Time, heavyDealsValue, color= clrs, label= 'Smart Money', width= barWidth)
         ax[1][0].plot(industryData.Time, industryData.RealMoneyEntryValue, color= 'blue', label= 'Real Money', linewidth= 0.8)
-        ax[1][0].legend(loc= "upper right", prop={'size': labelSize})
+        ax[1][0].legend(prop={'size': labelSize}) #loc= "upper right", 
 
         realPowerHamvaznDif = [log10(item) for item in industryData.RealPowerHamvaznDif]
         realPowerKolDif = [log10(item) for item in industryData.RealPowerKolDif]
@@ -1472,7 +1475,7 @@ class marketTrend(marketFilter):
 
             if groupName == 'کل_بازار':
 
-                if trendChange or now-self.groupsData[groupName]['LastTime'] > 10*60 and now % 900 < 5*60 and now > 9*3600+4*60:
+                if trendChange or now-self.groupsData[groupName]['LastTime'] > 6*60 and now % 900 < 5*60 and now > 9*3600+10*60:
             
                     telegramMessage = self.create_general_telegram_message(groupName)
 
@@ -1485,15 +1488,15 @@ class marketTrend(marketFilter):
                     else:
                         print('Error sending market image')
 
-        if now % 900 < 5*60 and now > 9*3600+4*60:
+        if now % 900 < 5*60 and now > 9*3600+10*60:
             for i in range(4):
-                if now - self.reportTime[i] > 10*60:
+                if now - self.reportTime[i] > 6*60:
                     break
             else:
                 return
             msgs = self.create_report()
             for i in range(4):
-                if now - self.reportTime[i] > 10*60 and send_message(marketTrendChatID, msgs[i]):
+                if now - self.reportTime[i] > 6*60 and send_message(marketTrendChatID, msgs[i]):
                     self.reportTime[i] = now
 
     def create_report(self):
@@ -1630,7 +1633,8 @@ class marketRise(marketFilter):
         super().__init__(manager)
 
         for groupName in self.groupsData:
-            self.groupsData[groupName]['LastTime'] = None
+            self.groupsData[groupName]['LastTime'] = 0
+            self.groupsData[groupName]['Number'] = 0
 
     def run_filter(self):
 
@@ -1643,19 +1647,20 @@ class marketRise(marketFilter):
 
             if len(industryData.LastPricePrcAverage) >= 6 and industryData.TickersNumber[-1] > 10:
 
-                changeLimit = min(self.manager.groups['کل_بازار'].TickersNumber[-1] / industryData.TickersNumber[-1] * 0.4, 1)
+                changeLimit = 0.5 # min(self.manager.groups['کل_بازار'].TickersNumber[-1] / industryData.TickersNumber[-1] * 0.4, 1)
                 priceDif = industryData.LastPricePrcAverage[-1] - industryData.LastPricePrcAverage[-6]
                     
                 if priceDif > changeLimit:
                     
-                    if now-self.groupsData[groupName]['LastTime'] > 280:
+                    if now-self.groupsData[groupName]['LastTime'] > 280 and now > 9*3600+10*60:
                         
                         self.groupsData[groupName]['LastTime'] = now
+                        self.groupsData[groupName]['Number'] += 1
 
-                        filterMessage = '<b>رنج مثبت ' + str(round(priceDif, 1)) + ' درصدی</b>\n\n'
+                        filterMessage = 'تغییر شاخص / تعداد سیگنال:\n<b>' + str(round(priceDif, 1)) + '+  ا  ' + str(self.groupsData[groupName]['Number']) + '</b>\n\n'
                         telegramMessage = self.create_general_telegram_message(groupName) + filterMessage + get_time()
                         if send_photo(marketTrendChatID, 'market.png', telegramMessage):
                             self.groupsData[groupName]['LastTime'] = now
-                            print('Market trend signaled.')
+                            print('Market Rise signaled.')
                         else:
-                            print('Error sending market image')
+                            print('Error Market Rise sending market image')
