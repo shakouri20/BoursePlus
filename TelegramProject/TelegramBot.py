@@ -58,9 +58,9 @@ def get_updates(offset= None):
     else:
         data = {}
 
-    for _ in range(5):
+    for _ in range(3):
         try:
-            response = requests.post(url, json= data, proxies= proxy)
+            response = requests.post(url, json= data, proxies= proxy, timeout= 2)
             return json.loads(response.text)
         except:
             pass
